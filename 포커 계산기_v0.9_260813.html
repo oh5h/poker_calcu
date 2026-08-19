@@ -1,0 +1,4030 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포커 계산기</title>
+<style>
+  :root{
+    --bg:#eef3fb;
+    --surface:#ffffff;
+    --border:#dbe4f3;
+    --border-strong:#c2d3ec;
+    --blue:#2f6fed;
+    --blue-dark:#1d54c4;
+    --blue-tint:#eaf1fd;
+    --blue-tint-strong:#dbe8fc;
+    --on-accent:#ffffff;
+    --ink:#1c2536;
+    --ink-soft:#5b6b85;
+    --ink-faint:#94a3ba;
+    --red:#d6455a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:16px;
+    padding:40px 16px 72px;
+    color:var(--ink);
+  }
+
+  .card, .history-card{
+    width:100%;
+    max-width:580px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    position:relative;
+    box-shadow:0 8px 24px rgba(30,60,120,0.08);
+  }
+  .card{
+    padding:32px 32px 28px;
+  }
+  .history-card{
+    padding:22px 26px 8px;
+  }
+
+  h1{
+    font-size:22px;
+    font-weight:700;
+    margin:0 0 24px;
+    text-align:center;
+    color:var(--ink);
+  }
+  .subtitle{
+    text-align:center;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin:0 0 28px;
+  }
+
+  section{
+    margin-bottom:22px;
+  }
+  section:last-of-type{
+    margin-bottom:0;
+  }
+  .label{
+    display:block;
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+
+  .btn-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .pill-btn{
+    padding:10px 16px;
+    border-radius:9px;
+    border:1px solid var(--border-strong);
+    background:var(--surface);
+    color:var(--ink-soft);
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+    transition:border-color .15s, background .15s, color .15s;
+  }
+  .pill-btn:hover{
+    border-color:var(--blue);
+    color:var(--ink);
+  }
+  .pill-btn.active{
+    border-color:var(--blue);
+    background:var(--blue);
+    color:var(--on-accent);
+  }
+  .mult{
+    font-size:11px;
+    font-weight:500;
+    opacity:0.65;
+    letter-spacing:0;
+    margin-left:1px;
+    font-variant-numeric:tabular-nums;
+  }
+  #gameDefault, #gameOther, #gameCoin{
+    flex:1;
+    text-align:center;
+  }
+  .hint{
+    margin:10px 2px 0;
+    font-size:12.5px;
+    color:var(--ink-faint);
+  }
+
+  .chip-input-wrap{
+    display:flex;
+    align-items:center;
+    background:var(--surface);
+    border:1px solid var(--border-strong);
+    border-radius:10px;
+    padding:2px 16px;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .chip-input-wrap:focus-within{
+    border-color:var(--blue);
+    box-shadow:0 0 0 3px var(--blue-tint);
+  }
+  .chip-input-wrap input{
+    flex:1;
+    min-width:0;
+    border:none;
+    outline:none;
+    background:transparent;
+    font-variant-numeric:tabular-nums;
+    font-size:20px;
+    font-weight:700;
+    padding:12px 0;
+    color:var(--ink);
+  }
+  .chip-input-wrap span{
+    font-size:13px;
+    color:var(--ink-soft);
+    font-weight:700;
+  }
+
+  .item-picker{
+    margin-top:12px;
+    padding:14px 16px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:var(--blue-tint);
+  }
+  .item-pills{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .item-pill{
+    width:32px;
+    height:32px;
+    border-radius:50%;
+    border:1px solid var(--border-strong);
+    background:var(--surface);
+    color:var(--ink);
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:border-color .15s, background .15s, color .15s;
+  }
+  .item-pill:hover{
+    border-color:var(--blue);
+  }
+  .item-pill.active{
+    border-color:var(--blue);
+    background:var(--blue);
+    color:var(--on-accent);
+  }
+
+  .note-input{
+    width:100%;
+    border:1px solid var(--border-strong);
+    border-radius:10px;
+    padding:11px 14px;
+    font-size:13.5px;
+    background:var(--surface);
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .note-input:focus{
+    border-color:var(--blue);
+    box-shadow:0 0 0 3px var(--blue-tint);
+  }
+
+  .result-panel{
+    background:var(--blue-tint);
+    border:1px solid var(--blue-tint-strong);
+    border-radius:14px;
+    padding:20px 8px;
+  }
+  .totals{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+  }
+  .totals.cols-4{
+    grid-template-columns:1fr 1fr 1fr 1fr;
+  }
+  .totals.cols-2{
+    grid-template-columns:1fr 1fr;
+  }
+  @media (max-width:520px){
+    .totals.cols-4{
+      grid-template-columns:1fr 1fr;
+      row-gap:14px;
+    }
+    .totals.cols-4 .stat:nth-child(3){
+      border-left:none;
+    }
+  }
+  .stat{
+    text-align:center;
+    padding:0 10px;
+  }
+  .stat + .stat{
+    border-left:1px solid var(--blue-tint-strong);
+  }
+  .stat-label{
+    font-size:10.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .stat-value{
+    font-size:16px;
+    font-weight:700;
+    color:var(--ink);
+    font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+  }
+  .stat-sub{
+    font-size:10px;
+    color:var(--ink-faint);
+    margin-top:4px;
+    min-height:13px;
+  }
+
+  .log-btn{
+    width:100%;
+    margin-top:20px;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    background:var(--blue);
+    color:var(--on-accent);
+    font-size:14.5px;
+    font-weight:700;
+    cursor:pointer;
+    transition:background .15s;
+  }
+  .log-btn:hover{background:var(--blue-dark);}
+  .log-btn:disabled{opacity:0.5;cursor:default;}
+
+  .history-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:6px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--border);
+  }
+  .history-head h2{
+    font-size:16px;
+    font-weight:700;
+    margin:0;
+  }
+  .clear-btn{
+    border:none;
+    background:none;
+    color:var(--ink-faint);
+    font-size:12.5px;
+    cursor:pointer;
+  }
+  .clear-btn:hover{color:var(--red);}
+  .hist-empty{
+    font-size:13px;
+    color:var(--ink-faint);
+    text-align:center;
+    padding:24px 0;
+  }
+  .hist-row{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:16px 2px;
+    border-bottom:1px solid var(--border);
+  }
+  .hist-row:last-child{border-bottom:none;}
+  .hist-main{
+    flex:1;
+    min-width:0;
+  }
+  .hist-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:8px;
+  }
+  .hist-date{
+    font-size:11px;
+    color:var(--ink-faint);
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .hist-amount{
+    font-size:13.5px;
+    font-weight:700;
+    color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  .hist-result{
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px 10px;
+    margin-top:5px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--red);
+    font-variant-numeric:tabular-nums;
+  }
+  .hist-result.stacked{
+    flex-direction:column;
+    gap:3px;
+  }
+  .hist-result.stacked .rake-line{
+    display:flex;
+    justify-content:flex-start;
+    gap:10px;
+    font-size:12.5px;
+    font-weight:600;
+  }
+  .hist-result.stacked .rake-line .rl-label{
+    color:var(--ink-faint);
+    font-weight:700;
+    width:24px;
+    flex-shrink:0;
+  }
+  .hist-result.stacked .rake-line .rl-bet{
+    color:var(--ink-soft);
+    width:82px;
+    text-align:left;
+    flex-shrink:0;
+  }
+  .hist-result.stacked .rake-line .rl-ratio{
+    color:var(--ink-soft);
+    width:56px;
+    text-align:left;
+  }
+  .hist-result.stacked .rake-line .rl-point{
+    color:var(--red);
+    text-align:left;
+  }
+  .hist-sub{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:8px;
+  }
+  .hist-tag{
+    font-size:11px;
+    color:var(--ink-soft);
+    background:var(--blue-tint);
+    border-radius:6px;
+    padding:3px 8px;
+    white-space:nowrap;
+    line-height:1.4;
+  }
+  .hist-del{
+    border:none;
+    background:none;
+    color:var(--ink-faint);
+    cursor:pointer;
+    padding:6px;
+    line-height:1;
+    border-radius:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .hist-del:hover{color:var(--red);background:rgba(214,69,90,0.08);}
+  .hist-row-actions{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    flex-shrink:0;
+  }
+  .hist-edit{
+    border:none;
+    background:none;
+    color:var(--ink-faint);
+    cursor:pointer;
+    padding:6px;
+    line-height:1;
+    border-radius:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .hist-edit:hover{color:var(--blue-dark);background:var(--blue-tint);}
+  .hist-edit-form{
+    width:100%;
+    padding:12px 2px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .edit-form-label{
+    font-size:11px;
+    font-weight:700;
+    color:var(--ink-soft);
+    margin-top:4px;
+  }
+  .edit-amount-input, .edit-note-input{
+    width:100%;
+    border:1px solid var(--border-strong);
+    border-radius:8px;
+    padding:8px 10px;
+    font-size:13px;
+    color:var(--ink);
+    background:var(--surface);
+    box-sizing:border-box;
+  }
+  .edit-amount-input:focus, .edit-note-input:focus{
+    border-color:var(--blue);
+    outline:none;
+  }
+  .edit-bet-grid{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .edit-bet-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .edit-bet-row span{
+    width:26px;
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink-soft);
+    flex-shrink:0;
+  }
+  .edit-bet-row input{
+    flex:1;
+    min-width:0;
+    border:1px solid var(--border-strong);
+    border-radius:8px;
+    padding:7px 10px;
+    font-size:13px;
+    color:var(--ink);
+    background:var(--surface);
+  }
+  .edit-bet-row input:focus{
+    border-color:var(--blue);
+    outline:none;
+  }
+  .edit-btn-row{
+    display:flex;
+    gap:8px;
+    margin-top:4px;
+  }
+  .edit-save-btn, .edit-cancel-btn{
+    flex:1;
+    padding:9px;
+    border-radius:8px;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .edit-save-btn{
+    border:none;
+    background:var(--blue);
+    color:var(--on-accent);
+  }
+  .edit-cancel-btn{
+    border:1px solid var(--border-strong);
+    background:transparent;
+    color:var(--ink-soft);
+  }
+
+  @media (max-width:520px){
+    .card{padding:24px 20px 22px;}
+    .history-card{padding:18px 16px 8px;}
+    h1{font-size:19px;}
+    .stat-value{font-size:13.5px;}
+  }
+
+  .mode-tabs{
+    width:100%;
+    max-width:600px;
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:6px;
+    margin-bottom:4px;
+  }
+  .mode-tabs .pill-btn{
+    text-align:center;
+    background:rgba(255,255,255,0.6);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    padding-left:6px;
+    padding-right:6px;
+    font-size:11px;
+  }
+  .mode-tabs .pill-btn.active{
+    background:var(--blue-tint);
+    border-color:var(--blue);
+    color:var(--ink-soft);
+  }
+  .formula-toggle-btn{
+    width:100%;
+    max-width:600px;
+    margin-bottom:16px;
+    padding:9px;
+    border-radius:9px;
+    border:1px dashed var(--border-strong);
+    background:transparent;
+    color:var(--blue-dark);
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .formula-toggle-btn:hover{
+    border-color:var(--blue);
+  }
+  .formula-corner-btn{
+    position:absolute;
+    top:16px;
+    left:16px;
+    width:26px;
+    height:26px;
+    border-radius:7px;
+    border:1px solid var(--border-strong);
+    background:var(--blue-tint);
+    color:var(--blue-dark);
+    font-size:11px;
+    font-weight:800;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .formula-corner-btn:hover{
+    border-color:var(--blue);
+  }
+  .card-corner-controls{
+    position:absolute;
+    top:16px;
+    left:16px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .card-corner-controls .formula-corner-btn{
+    position:static;
+  }
+  .settings-corner-btn{
+    padding:5px 10px;
+    border-radius:7px;
+    border:1px solid var(--border-strong);
+    background:var(--blue-tint);
+    color:var(--blue-dark);
+    font-size:11px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .settings-corner-btn:hover{
+    border-color:var(--blue);
+  }
+  .warning-note{
+    background:rgba(230,162,29,0.1);
+    border:1px solid rgba(230,162,29,0.4);
+    border-radius:10px;
+    padding:10px 12px;
+    font-size:11.5px;
+    color:#92620f;
+    line-height:1.5;
+    margin-bottom:16px;
+  }
+  .formula-section{
+    margin-bottom:20px;
+  }
+  .formula-section:last-child{
+    margin-bottom:0;
+  }
+  .formula-group-title{
+    font-size:11px;
+    font-weight:800;
+    color:var(--blue-dark);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin:0 0 10px;
+  }
+  .formula-item{
+    background:var(--blue-tint);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:8px;
+  }
+  .formula-item:last-child{
+    margin-bottom:0;
+  }
+  .formula-item .f-label{
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--ink);
+    margin-bottom:4px;
+  }
+  .formula-item .f-code{
+    display:block;
+    font-size:12px;
+    color:var(--blue-dark);
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+    line-height:1.5;
+  }
+  .formula-item .f-note{
+    font-size:10.5px;
+    color:var(--ink-faint);
+    margin-top:3px;
+  }
+  .settings-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:7px 0;
+    border-bottom:1px dashed var(--border);
+  }
+  .settings-row:last-child{
+    border-bottom:none;
+  }
+  .settings-row span{
+    font-size:12px;
+    color:var(--ink-soft);
+    flex:1;
+  }
+  .settings-row input{
+    width:130px;
+    flex-shrink:0;
+    border:1px solid var(--border-strong);
+    border-radius:7px;
+    padding:6px 8px;
+    font-size:12px;
+    color:var(--ink);
+    background:var(--surface);
+    text-align:right;
+  }
+  .settings-row input:focus{
+    border-color:var(--blue);
+    outline:none;
+  }
+  .settings-row.dual input{
+    width:62px;
+  }
+  .settings-row.dual input:first-of-type{
+    margin-right:6px;
+  }  .group{
+    margin-bottom:20px;
+    padding-bottom:20px;
+    border-bottom:1px dashed var(--border-strong);
+  }
+  .group:last-of-type{
+    margin-bottom:0;
+    padding-bottom:0;
+    border-bottom:none;
+  }
+  .group-title{
+    font-size:12px;
+    font-weight:800;
+    color:var(--blue-dark);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin:0 0 14px;
+    padding-bottom:8px;
+    border-bottom:1px dashed var(--border);
+  }
+  .field-row-2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  .field-row-2 .subfield{
+    margin-bottom:0;
+  }
+  .subfield{
+    margin-bottom:14px;
+  }
+  .subfield:last-child{
+    margin-bottom:0;
+  }
+  .sublabel{
+    display:block;
+    font-size:11px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }  .quick-add{
+    display:flex;
+    gap:6px;
+    margin-top:8px;
+  }
+  .quick-add button{
+    flex:1;
+    padding:8px 4px;
+    border-radius:8px;
+    border:1px solid var(--border-strong);
+    background:var(--blue-tint);
+    color:var(--blue-dark);
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .quick-add button:hover{
+    border-color:var(--blue);
+  }
+  .quick-add button.reset{
+    background:var(--surface);
+    color:var(--ink-soft);
+  }
+  .psum-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .psum-tile{
+    background:var(--blue-tint);
+    border-radius:10px;
+    padding:10px 12px;
+  }
+  .psum-label{
+    font-size:10.5px;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+  }
+  .psum-value{
+    font-size:16px;
+    font-weight:700;
+    color:var(--blue-dark);
+    margin-bottom:6px;
+    font-variant-numeric:tabular-nums;
+  }
+  .psum-base-row{
+    display:flex;
+    align-items:center;
+    gap:4px;
+  }
+  .psum-base-row span{
+    font-size:10px;
+    color:var(--ink-faint);
+    white-space:nowrap;
+  }
+  .psum-base-row input{
+    width:100%;
+    min-width:0;
+    font-size:11px;
+    border:1px solid var(--border-strong);
+    border-radius:6px;
+    padding:3px 6px;
+    color:var(--ink);
+    background:var(--surface);
+  }
+  .psum-note{
+    font-size:11px;
+    color:var(--ink-faint);
+    margin:10px 0 0;
+  }
+  .filter-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:14px;
+  }
+  .filter-row .pill-btn{
+    flex:1 1 auto;
+    text-align:center;
+    white-space:nowrap;
+  }
+  .bet-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:6px;
+  }
+  .bet-grid input{
+    width:100%;
+    min-width:0;
+    border:1px solid var(--border-strong);
+    border-radius:8px;
+    padding:8px 6px;
+    font-size:12.5px;
+    text-align:center;
+    color:var(--ink);
+    background:var(--surface);
+  }
+  .bet-grid input:focus{
+    border-color:var(--blue);
+    outline:none;
+  }
+  @media (max-width:520px){
+    .bet-grid{grid-template-columns:repeat(4, 1fr);}
+  }
+  .rake-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .rake-row:last-child{
+    border-bottom:none;
+  }
+  .rake-row-label{
+    width:54px;
+    font-size:11.5px;
+    font-weight:700;
+    color:var(--ink-soft);
+    flex-shrink:0;
+    cursor:pointer;
+    padding:4px 6px;
+    border-radius:6px;
+    text-align:center;
+    user-select:none;
+  }
+  .rake-row-label:hover{
+    background:var(--blue-tint);
+  }
+  .rake-row-label.is-winner{
+    color:var(--blue-dark);
+    background:var(--blue-tint);
+  }
+  .rake-row input{
+    flex:1;
+    min-width:0;
+    border:1px solid var(--border-strong);
+    border-radius:8px;
+    padding:8px 10px;
+    font-size:13px;
+    color:var(--ink);
+    background:var(--surface);
+  }
+  .rake-row input:focus{
+    border-color:var(--blue);
+    outline:none;
+  }
+  .rake-row-ratio{
+    width:58px;
+    text-align:right;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    flex-shrink:0;
+    font-variant-numeric:tabular-nums;
+  }
+  .rake-row-point{
+    width:64px;
+    text-align:right;
+    font-size:13px;
+    font-weight:700;
+    color:var(--blue-dark);
+    flex-shrink:0;
+    font-variant-numeric:tabular-nums;
+  }
+  .rake-row-remove{
+    border:none;
+    background:none;
+    color:var(--ink-faint);
+    cursor:pointer;
+    padding:4px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:6px;
+  }
+  .rake-row-remove:hover{
+    color:var(--red);
+  }
+  .add-player-btn{
+    width:100%;
+    margin-top:6px;
+    padding:9px;
+    border-radius:8px;
+    border:1px dashed var(--border-strong);
+    background:transparent;
+    color:var(--blue-dark);
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .add-player-btn:hover{
+    border-color:var(--blue);
+  }
+  .add-player-btn:disabled{
+    opacity:0.5;
+    cursor:default;
+  }
+  .group-header-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  .add-player-btn-small{
+    flex-shrink:0;
+    padding:6px 10px;
+    border-radius:8px;
+    border:1px solid var(--border-strong);
+    background:var(--blue-tint);
+    color:var(--blue-dark);
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .add-player-btn-small:hover{
+    border-color:var(--blue);
+  }
+  .add-player-btn-small:disabled{
+    opacity:0.5;
+    cursor:default;
+  }
+  .add-player-btn-small.reset-btn{
+    background:rgba(214,69,90,0.08);
+    border-color:rgba(214,69,90,0.35);
+    color:var(--red);
+  }
+  .add-player-btn-small.reset-btn:hover{
+    border-color:var(--red);
+  }
+  .history-trigger{
+    margin-top:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+  .hist-badge{
+    background:var(--on-accent);
+    color:var(--blue);
+    border-radius:10px;
+    padding:1px 8px;
+    font-size:11.5px;
+    font-weight:800;
+  }
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(10,16,28,0.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:1000;
+  }
+  .modal-overlay.open{
+    display:flex;
+  }
+  .modal-box{
+    background:var(--surface);
+    border-radius:18px;
+    width:100%;
+    max-width:600px;
+    max-height:90vh;
+    display:flex;
+    flex-direction:column;
+    padding:30px 32px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.35);
+  }
+  .modal-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+    padding-bottom:12px;
+    border-bottom:1px solid var(--border);
+  }
+  .modal-title{
+    font-size:16px;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .modal-close{
+    border:none;
+    background:none;
+    color:var(--ink-faint);
+    cursor:pointer;
+    padding:6px;
+    line-height:1;
+    border-radius:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .modal-close:hover{
+    color:var(--ink);
+  }
+  .modal-toolbar{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .modal-list-scroll{
+    overflow-y:auto;
+    flex:1;
+    min-height:0;
+  }
+  .sp-row{
+    padding:8px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .sp-row:last-child{border-bottom:none;}
+  .sp-row-line1{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .sp-row-line2{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-top:6px;
+    padding-left:38px;
+  }
+  .sp-item-select{
+    flex:1;
+    min-width:0;
+    border:1px solid var(--border-strong);
+    border-radius:8px;
+    padding:6px 8px;
+    font-size:12px;
+    color:var(--ink);
+    background:var(--surface);
+    cursor:pointer;
+  }
+  .sp-item-select:focus{border-color:var(--blue);outline:none;}
+  .sp-lucky-stepper{
+    display:none;
+    align-items:center;
+    gap:0;
+    border:1px solid var(--border-strong);
+    border-radius:8px;
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .sp-lucky-step-btn{
+    width:26px;
+    height:26px;
+    border:none;
+    background:var(--surface);
+    color:var(--ink);
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    line-height:1;
+  }
+  .sp-lucky-step-btn:hover{background:var(--blue-tint);}
+  .sp-lucky-step-btn:disabled{color:var(--ink-faint);cursor:default;background:var(--surface);}
+  .sp-lucky-count-val{
+    min-width:34px;
+    text-align:center;
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink);
+    padding:0 2px;
+  }
+  .sp-row-label{
+    width:30px;
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink-soft);
+    flex-shrink:0;
+    text-align:center;
+  }
+  .sp-row input{
+    flex:1;
+    min-width:0;
+    border:1px solid var(--border-strong);
+    border-radius:8px;
+    padding:8px 10px;
+    font-size:13px;
+    color:var(--ink);
+    background:var(--surface);
+  }
+  .sp-row input:focus{
+    border-color:var(--blue);
+    outline:none;
+  }
+  .sp-rank-wrap{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    flex-shrink:0;
+  }
+  .sp-rank-label{
+    font-size:10.5px;
+    color:var(--ink-faint);
+  }
+  .sp-rank-select{
+    width:52px;
+    border:1px solid var(--border-strong);
+    border-radius:8px;
+    padding:7px 4px;
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink);
+    background:var(--surface);
+    text-align:center;
+    cursor:pointer;
+  }
+  .sp-rank-select:focus{
+    border-color:var(--blue);
+    outline:none;
+  }
+  .sp-row-remove{
+    border:none;
+    background:none;
+    color:var(--ink-faint);
+    cursor:pointer;
+    padding:4px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:6px;
+  }
+  .sp-row-remove:hover{color:var(--red);}
+  .sp-result-item{
+    background:var(--blue-tint);
+    border-radius:10px;
+    padding:12px 14px;
+    margin-bottom:8px;
+  }
+  .sp-result-item:last-child{margin-bottom:0;}
+  .sp-result-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:6px;
+  }
+  .sp-result-name{
+    font-size:13px;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .sp-result-net{
+    font-size:15px;
+    font-weight:800;
+    font-variant-numeric:tabular-nums;
+  }
+  .sp-result-net.win{color:#1a8f4a;}
+  .sp-result-net.lose{color:var(--red);}
+  .sp-result-net.zero{color:var(--ink-faint);}
+  .sp-result-detail{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    line-height:1.6;
+  }
+  .sp-settlement-step{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px 14px;
+    margin-bottom:8px;
+  }
+  .sp-settlement-step:last-child{margin-bottom:0;}
+  .sp-step-title{
+    font-size:12px;
+    font-weight:700;
+    color:var(--blue-dark);
+    margin-bottom:6px;
+  }
+  .sp-step-body{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    line-height:1.7;
+  }
+  .sp-step-body strong{
+    color:var(--ink);
+  }
+</style>
+</head>
+<body>
+  <div class="mode-tabs">
+    <button type="button" class="pill-btn active" id="modeDealer">딜러비 계산</button>
+    <button type="button" class="pill-btn" id="modePoint">포인트 계산</button>
+    <button type="button" class="pill-btn" id="modeRake">레이크 레이스</button>
+    <button type="button" class="pill-btn" id="modeAmatch">바운티 매치</button>
+    <button type="button" class="pill-btn" id="modeSidepot">사이드팟</button>
+  </div>
+
+  <div class="card" id="dealerCard">
+    <div class="card-corner-controls"><button type="button" class="formula-corner-btn" id="openDealerFormula" aria-label="딜러비 계산식 보기">fx</button><button type="button" class="settings-corner-btn open-settings-btn">계산 상수 설정</button></div>
+    <h1>딜러비 계산기</h1>
+
+    <div class="group">
+      <div class="subfield">
+        <span class="sublabel">게임 종류</span>
+        <div class="btn-row">
+          <button type="button" class="pill-btn active" id="gameDefault">일반 경기장</button>
+          <button type="button" class="pill-btn" id="gameOther">러시홀덤</button>
+          <button type="button" class="pill-btn" id="gameCoin">코인 경기장</button>
+        </div>
+        <p class="hint" id="gameHint">일반 경기장: 승리 칩 750억 이하 6% · 750억 초과 4%</p>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="subfield">
+        <span class="sublabel">딜러 아이템</span>
+        <div class="btn-row" id="discountBtns">
+          <button type="button" class="pill-btn active" data-val="none">아이템 없음</button>
+          <button type="button" class="pill-btn" id="discGold" data-val="30">골드 딜러</button>
+          <button type="button" class="pill-btn" id="discRoyal" data-val="50">로얄 딜러</button>
+          <button type="button" class="pill-btn" data-val="item">럭키 딜러</button>
+        </div>
+        <div class="item-picker" id="itemPicker" style="display:none;">
+          <span class="label" id="luckyItemHint" style="margin-bottom:8px;">럭키 딜러 개수 (딜러비에서 개당 0.25% 차감)</span>
+          <div class="item-pills" id="itemPills"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group" style="border-bottom:none;padding-bottom:0;margin-bottom:20px;">
+      <div class="subfield">
+        <span class="sublabel">승리 머니</span>
+        <div class="chip-input-wrap">
+          <input type="number" id="amountInput" min="0" value="0">
+          <span>칩</span>
+        </div>
+        <div class="quick-add" id="quickAddDealer">
+          <button type="button" data-add="10000000">+1000만</button>
+          <button type="button" data-add="100000000">+1억</button>
+          <button type="button" data-add="1000000000">+10억</button>
+          <button type="button" data-add="10000000000">+100억</button>
+          <button type="button" class="reset" data-add="reset">초기화</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-panel">
+      <div class="totals cols-4" id="dealerTotals">
+        <div class="stat">
+          <div class="stat-label">적용 요율</div>
+          <div class="stat-value" id="rateOut">6%</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">딜러비</div>
+          <div class="stat-value" id="feeOut">0 칩</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">실수령액</div>
+          <div class="stat-value" id="netOut">0 칩</div>
+        </div>
+        <div class="stat" id="jackpotStat">
+          <div class="stat-label">잭팟 적립금</div>
+          <div class="stat-value" id="jackpotOut">0 칩</div>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="log-btn" id="addLogBtn">이 계산을 기록에 추가</button>
+    <div class="subfield" style="margin-top:14px;">
+      <input type="text" class="note-input" id="noteInput" placeholder="메모 (선택) 예: 1번 테이블, 홍길동">
+    </div>
+  </div>
+
+  <div class="card" id="pointCard" style="display:none;">
+    <div class="card-corner-controls"><button type="button" class="formula-corner-btn" id="openPointFormula" aria-label="포인트 계산식 보기">fx</button><button type="button" class="settings-corner-btn open-settings-btn">계산 상수 설정</button></div>
+    <h1>포인트 계산기</h1>
+
+    <div class="group">
+      <div class="subfield">
+        <span class="sublabel">결과</span>
+        <div class="btn-row" id="outcomeBtns">
+          <button type="button" class="pill-btn active" data-val="win">승리</button>
+          <button type="button" class="pill-btn" data-val="lose">패배</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="field-row-2" style="margin-bottom:14px;">
+        <div class="subfield">
+          <span class="sublabel">히든매치</span>
+          <div class="btn-row" id="hiddenBtns">
+            <button type="button" class="pill-btn active" data-val="0">일반</button>
+            <button type="button" class="pill-btn" data-val="1">히든매치 <span class="mult" id="multHidden">(2배)</span></button>
+          </div>
+        </div>
+        <div class="subfield">
+          <span class="sublabel">점령전 참가 (금·토·일에만 영향)</span>
+          <div class="btn-row" id="occJoinBtns">
+            <button type="button" class="pill-btn active" data-val="0">미참가</button>
+            <button type="button" class="pill-btn" data-val="1">참가</button>
+          </div>
+        </div>
+      </div>
+      <div class="subfield">
+        <span class="sublabel">요일 (클럽·점령 배율)</span>
+        <div class="btn-row" id="dayBtns">
+          <button type="button" class="pill-btn" id="dayMonThu" data-val="1">월~목</button>
+          <button type="button" class="pill-btn" data-val="5">금 <span class="mult" id="multFri">(1.5배)</span></button>
+          <button type="button" class="pill-btn" data-val="6">토 <span class="mult" id="multSat">(2배)</span></button>
+          <button type="button" class="pill-btn" data-val="0">일 <span class="mult" id="multSun">(2.5배)</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="subfield">
+        <span class="sublabel">포인트 추가 아이템 (클럽·점령 적용)</span>
+        <div class="btn-row" id="pointItemBtns">
+          <button type="button" class="pill-btn active" data-val="none">아이템 없음</button>
+          <button type="button" class="pill-btn" data-val="p10" id="btnItem10">+10%</button>
+          <button type="button" class="pill-btn" data-val="p30" id="btnItem30">+30%</button>
+          <button type="button" class="pill-btn" data-val="a50" id="btnItem50">+50점</button>
+          <button type="button" class="pill-btn" data-val="a150" id="btnItem150">+150점</button>
+        </div>
+      </div>
+      <div class="subfield">
+        <span class="sublabel">클럽 자금 등급</span>
+        <div class="btn-row" id="clubGradeBtns">
+          <button type="button" class="pill-btn active" data-val="silver">실버</button>
+          <button type="button" class="pill-btn" data-val="gold">골드</button>
+          <button type="button" class="pill-btn" data-val="diamond">다이아</button>
+          <button type="button" class="pill-btn" data-val="pro">프로</button>
+          <button type="button" class="pill-btn" data-val="master">마스터</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="group" style="border-bottom:none;padding-bottom:0;margin-bottom:20px;">
+      <div class="subfield">
+        <span class="sublabel" id="pointAmountLabel">획득 칩</span>
+        <div class="chip-input-wrap">
+          <input type="number" id="pointAmountInput" min="0" value="0">
+          <span>칩</span>
+        </div>
+        <div class="quick-add" id="quickAddPoint">
+          <button type="button" data-add="10000000">+1000만</button>
+          <button type="button" data-add="100000000">+1억</button>
+          <button type="button" data-add="1000000000">+10억</button>
+          <button type="button" data-add="10000000000">+100억</button>
+          <button type="button" class="reset" data-add="reset">초기화</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-panel">
+      <div class="totals cols-4" id="pointTotals">
+        <div class="stat">
+          <div class="stat-label">랭킹 포인트</div>
+          <div class="stat-value" id="rankOut">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">클럽 포인트</div>
+          <div class="stat-value" id="clubOut">0</div>
+        </div>
+        <div class="stat" id="occStat">
+          <div class="stat-label">점령 포인트</div>
+          <div class="stat-value" id="occOut">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">클럽 자금</div>
+          <div class="stat-value" id="clubFundOut">0</div>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="log-btn" id="addPointLogBtn">이 계산을 기록에 추가</button>
+    <div class="subfield" style="margin-top:14px;">
+      <input type="text" class="note-input" id="pointNoteInput" placeholder="메모 (선택) 예: 1번 테이블, 홍길동">
+    </div>
+  </div>
+
+  <div class="card" id="rakeCard" style="display:none;">
+    <div class="card-corner-controls"><button type="button" class="formula-corner-btn" id="openRakeFormula" aria-label="레이크 계산식 보기">fx</button><button type="button" class="settings-corner-btn open-settings-btn">계산 상수 설정</button></div>
+    <h1>레이크 레이스</h1>
+
+    <p class="warning-note">⚠️ 레이크 레이스는 딜러 아이템(골드/로얄/럭키)과 무관하게 딜러비 5% 고정으로 계산돼요.</p>
+
+    <div class="group">
+      <div class="group-header-row">
+        <h3 class="group-title" style="margin:0;border-bottom:none;padding-bottom:0;">플레이어 베팅 (최대 9인)</h3>
+        <div style="display:flex;gap:6px;">
+          <button type="button" class="add-player-btn-small" id="addRakePlayerBtn">+ 유저 추가</button>
+          <button type="button" class="add-player-btn-small reset-btn" id="resetRakePlayersBtn">전체 초기화</button>
+        </div>
+      </div>
+      <p class="hint">유저 이름(라벨)을 눌러 공동승(승리유저)을 추가/해제할 수 있어요</p>
+      <div id="rakePlayerList"></div>
+      <div class="rake-row" style="border-top:1px dashed var(--border);border-bottom:none;padding-top:10px;margin-top:2px;">
+        <span class="rake-row-label" style="cursor:default;">잭팟</span>
+        <input type="number" id="rakeJackpotInput" min="0" value="0" aria-label="잭팟 머니">
+      </div>
+    </div>
+
+    <div class="result-panel">
+      <div class="totals" id="rakeTotals" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="stat">
+          <div class="stat-label">전체 베팅 금액</div>
+          <div class="stat-value" id="totalBetOut2">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">딜러비</div>
+          <div class="stat-value" id="tableFeeOut">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">승리 금액</div>
+          <div class="stat-value" id="myWinOut">0</div>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="log-btn" id="addRakeLogBtn">이 계산을 기록에 추가</button>
+    <div class="subfield" style="margin-top:14px;">
+      <input type="text" class="note-input" id="rakeNoteInput" placeholder="메모 (선택) 예: 1번 테이블, 홍길동">
+    </div>
+  </div>
+
+  <div class="card" id="amatchCard" style="display:none;">
+    <div class="card-corner-controls"><button type="button" class="formula-corner-btn" id="openAmatchFormula" aria-label="바운티 매치 계산식 보기">fx</button><button type="button" class="settings-corner-btn open-settings-btn">계산 상수 설정</button></div>
+    <h1>바운티 매치</h1>
+
+    <div class="group">
+      <p class="hint">바운티 비율 1%, 보너스 머니 0.5% 고정</p>
+    </div>
+
+    <div class="group">
+      <h3 class="group-title">턴 진행 (실시간, 기록 안 됨)</h3>
+      <div class="subfield">
+        <span class="sublabel">이번 턴 토탈팟</span>
+        <div class="chip-input-wrap">
+          <input type="number" id="amatchPotInput" min="0" value="0">
+          <span>칩</span>
+        </div>
+      </div>
+      <div class="subfield">
+        <span class="sublabel">이번 턴 내 베팅 금액</span>
+        <div class="chip-input-wrap">
+          <input type="number" id="amatchMyBetInput" min="0" value="0">
+          <span>칩</span>
+        </div>
+      </div>
+      <div class="result-panel">
+        <div class="totals" style="grid-template-columns:1fr 1fr 1fr;">
+          <div class="stat">
+            <div class="stat-label">이번 턴 예상 승리 금액</div>
+            <div class="stat-value" id="amatchTurnWinOut">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">이번 턴 바운티</div>
+            <div class="stat-value" id="amatchTurnAOut">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">이번 턴 보너스 머니</div>
+            <div class="stat-value" id="amatchTurnBonusOut">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3 class="group-title">최종 결과 (기록용)</h3>
+      <div class="subfield">
+        <span class="sublabel">승리 머니</span>
+        <div class="chip-input-wrap">
+          <input type="number" id="amatchWinInput" min="0" value="0">
+          <span>칩</span>
+        </div>
+      </div>
+      <div class="result-panel">
+        <div class="totals" style="grid-template-columns:1fr 1fr 1fr;">
+          <div class="stat">
+            <div class="stat-label">승리 머니</div>
+            <div class="stat-value" id="amatchWinOut">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">최종 바운티</div>
+            <div class="stat-value" id="amatchFinalAOut">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">보너스 머니</div>
+            <div class="stat-value" id="amatchFinalBonusOut">0</div>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="log-btn" id="addAmatchLogBtn">이 계산을 기록에 추가</button>
+      <div class="subfield" style="margin-top:14px;">
+        <input type="text" class="note-input" id="amatchNoteInput" placeholder="메모 (선택) 예: 1번 테이블, 홍길동">
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="sidepotCard" style="display:none;">
+    <div class="card-corner-controls"><button type="button" class="formula-corner-btn" id="openSidepotFormula" aria-label="사이드팟 계산식 보기">fx</button></div>
+    <h1>사이드팟 계산기</h1>
+
+    <p class="warning-note">플레이어별 베팅 금액과 순위를 입력하면 사이드팟 방식으로 정산 결과를 계산해요.</p>
+
+    <div class="group">
+      <div class="subfield">
+        <span class="sublabel">게임 종류</span>
+        <div class="btn-row" id="spGameBtns">
+          <button type="button" class="pill-btn active" data-val="default">일반 경기장</button>
+          <button type="button" class="pill-btn" data-val="other">러시홀덤</button>
+          <button type="button" class="pill-btn" data-val="coin">코인 경기장</button>
+        </div>
+        <p class="hint" id="spGameHint">일반 경기장: 승리 칩 750억 이하 6% · 750억 초과 4%</p>
+      </div>
+    </div>
+
+    <p class="hint" style="margin-top:-4px;">플레이어별로 딜러 아이템을 다르게 지정할 수 있어요 (아래 각 유저 행에서 선택)</p>
+
+    <div class="group">
+      <div class="group-header-row">
+        <h3 class="group-title" style="margin:0;border-bottom:none;padding-bottom:0;">플레이어 (최대 9인)</h3>
+        <div style="display:flex;gap:6px;">
+          <button type="button" class="add-player-btn-small" id="addSpPlayerBtn">+ 유저 추가</button>
+          <button type="button" class="add-player-btn-small reset-btn" id="resetSpPlayersBtn">전체 초기화</button>
+        </div>
+      </div>
+      <div id="spPlayerList"></div>
+    </div>
+
+    <div class="result-panel" id="spResultPanel" style="display:none;">
+      <div id="spResultList"></div>
+    </div>
+
+    <button type="button" class="log-btn" id="openSpSettlementBtn" style="display:none;background:transparent;border:1px dashed var(--border-strong);color:var(--blue-dark);margin-top:12px;">정산 과정 보기</button>
+
+    <button type="button" class="log-btn" id="addSpLogBtn">이 계산을 기록에 추가</button>
+    <div class="subfield" style="margin-top:14px;">
+      <input type="text" class="note-input" id="spNoteInput" placeholder="메모 (선택) 예: 1번 테이블, 홍길동">
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="spSettlementModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">정산 과정</span>
+        <button type="button" class="modal-close" id="closeSpSettlementModal" aria-label="닫기">
+          <svg width="15" height="15" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 1.5L11.5 11.5M11.5 1.5L1.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-list-scroll" id="spSettlementSteps"></div>
+    </div>
+  </div>
+
+  <div class="history-card" id="rakeSummaryCard" style="display:none;">
+    <div class="history-head">
+      <h2>레이크 포인트 누적</h2>
+      <button type="button" class="clear-btn" id="resetRakeSummaryBtn">초기화</button>
+    </div>
+    <div class="psum-grid" id="rakeSummaryGrid"></div>
+    <p class="psum-note">유저별 "기존" 값 + 기록에 쌓인 누적값 = 각 합계</p>
+  </div>
+
+  <div class="history-card" id="pointSummaryCard" style="display:none;">
+    <div class="history-head">
+      <h2>포인트 누적</h2>
+      <button type="button" class="clear-btn" id="resetPointSummaryBtn">초기화</button>
+    </div>
+    <div class="psum-grid">
+      <div class="psum-tile">
+        <div class="psum-label">랭킹 포인트</div>
+        <div class="psum-value" id="psumRank">0</div>
+        <div class="psum-base-row"><span>기존</span><input type="number" id="baseRank" value="0"></div>
+      </div>
+      <div class="psum-tile">
+        <div class="psum-label">클럽 포인트</div>
+        <div class="psum-value" id="psumClub">0</div>
+        <div class="psum-base-row"><span>기존</span><input type="number" id="baseClub" value="0"></div>
+      </div>
+      <div class="psum-tile">
+        <div class="psum-label">점령 포인트</div>
+        <div class="psum-value" id="psumOcc">0</div>
+        <div class="psum-base-row"><span>기존</span><input type="number" id="baseOcc" value="0"></div>
+      </div>
+      <div class="psum-tile">
+        <div class="psum-label">클럽 자금</div>
+        <div class="psum-value" id="psumFund">0</div>
+        <div class="psum-base-row"><span>기존</span><input type="number" id="baseFund" value="0"></div>
+      </div>
+    </div>
+    <p class="psum-note">"기존" 값 + 기록에 쌓인 누적값 = 위 합계</p>
+  </div>
+
+  <div class="history-card">
+    <button type="button" class="log-btn history-trigger" id="openHistoryBtn">
+      기록 보기 <span class="hist-badge" id="histBadge">0</span>
+    </button>
+  </div>
+
+  <div class="modal-overlay" id="historyModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">기록</span>
+        <button type="button" class="modal-close" id="closeHistoryModal" aria-label="닫기">
+          <svg width="15" height="15" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 1.5L11.5 11.5M11.5 1.5L1.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-toolbar">
+        <div class="filter-row" id="historyFilterBtns" style="margin-bottom:0;flex:1;">
+          <button type="button" class="pill-btn active" data-val="all">전체</button>
+          <button type="button" class="pill-btn" data-val="dealer">딜러비</button>
+          <button type="button" class="pill-btn" data-val="point">포인트</button>
+          <button type="button" class="pill-btn" data-val="rake">레이크</button>
+          <button type="button" class="pill-btn" data-val="amatch">바운티 매치</button>
+          <button type="button" class="pill-btn" data-val="sidepot">사이드팟</button>
+        </div>
+        <button type="button" class="clear-btn" id="clearHistBtn">전체 삭제</button>
+      </div>
+      <div class="modal-list-scroll" id="historyList"><p class="hist-empty">불러오는 중...</p></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="formulaModalDealer">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">딜러비 계산식</span>
+        <button type="button" class="modal-close close-formula" aria-label="닫기">
+          <svg width="15" height="15" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 1.5L11.5 11.5M11.5 1.5L1.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-list-scroll">
+        <div class="formula-section">
+          <p class="formula-group-title">요율</p>
+          <div class="formula-item">
+            <div class="f-label">일반 경기장</div>
+            <span class="f-code">750억 이하 6% / 750억 초과 4%</span>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">러시홀덤</div>
+            <span class="f-code">위 요율(딜러 아이템 적용 후) + 1%</span>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">코인 경기장</div>
+            <span class="f-code">2.5% 고정</span>
+          </div>
+        </div>
+        <div class="formula-section">
+          <p class="formula-group-title">딜러 아이템 할인</p>
+          <div class="formula-item">
+            <div class="f-label">골드 딜러 / 로얄 딜러</div>
+            <span class="f-code">딜러비 금액의 30% / 50% 할인</span>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">럭키 딜러</div>
+            <span class="f-code">요율에서 개당 0.25%p 차감</span>
+            <div class="f-note">최대 10개, 최대 2.5%p</div>
+          </div>
+        </div>
+        <div class="formula-section">
+          <p class="formula-group-title">최종 계산</p>
+          <div class="formula-item">
+            <div class="f-label">딜러비</div>
+            <span class="f-code">승리 머니 × 최종 요율</span>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">잭팟 적립금</div>
+            <span class="f-code">딜러비 × 0.7%</span>
+            <div class="f-note">일반 경기장만 적립</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="formulaModalPoint">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">포인트 계산식</span>
+        <button type="button" class="modal-close close-formula" aria-label="닫기">
+          <svg width="15" height="15" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 1.5L11.5 11.5M11.5 1.5L1.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-list-scroll">
+        <div class="formula-section">
+          <p class="formula-group-title">랭킹 포인트</p>
+          <div class="formula-item">
+            <div class="f-label">승리 / 패배</div>
+            <span class="f-code">(칩 ÷ 1억) × 5 / (칩 ÷ 1억) × 1</span>
+            <div class="f-note">히든매치 ×2, 반올림 없음</div>
+          </div>
+        </div>
+        <div class="formula-section">
+          <p class="formula-group-title">클럽 · 점령 포인트</p>
+          <div class="formula-item">
+            <div class="f-label">클럽 포인트</div>
+            <span class="f-code">(칩 × 0.000001 또는 0.0000005) × 히든배율 × 요일배율</span>
+            <div class="f-note">소수점 올림 처리</div>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">점령 포인트</div>
+            <span class="f-code">버림(기본값 + 0.9) × 요일배율 + 0.9</span>
+            <div class="f-note">소수점 버림 처리(안쪽·바깥쪽 2번), 금·토·일만 계산, 월~목·미참가는 0</div>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">점령전 참가 클럽</div>
+            <span class="f-code">클럽 포인트 = 점령 포인트와 동일한 식</span>
+          </div>
+        </div>
+        <div class="formula-section">
+          <p class="formula-group-title">보너스</p>
+          <div class="formula-item">
+            <div class="f-label">포인트 아이템</div>
+            <span class="f-code">+10% / +30% / +50점 / +150점 적용</span>
+            <div class="f-note">적용 후 소수점 올림 처리</div>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">클럽 자금</div>
+            <span class="f-code">등급별(실버~마스터) 요율 × 칩</span>
+            <div class="f-note">소수점 올림 처리, 요일배율 없음</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="formulaModalRake">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">레이크 레이스 계산식</span>
+        <button type="button" class="modal-close close-formula" aria-label="닫기">
+          <svg width="15" height="15" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 1.5L11.5 11.5M11.5 1.5L1.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-list-scroll">
+        <div class="formula-section">
+          <p class="formula-group-title">팟 비율</p>
+          <div class="formula-item">
+            <div class="f-label">팟 투입 비율</div>
+            <span class="f-code">(베팅 금액 ÷ 전체 베팅 금액) × 100</span>
+            <div class="f-note">소수 셋째 자리에서 반올림하여 둘째 자리까지 표시</div>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">승리 금액 (사이드팟 방식)</div>
+            <span class="f-code">다른 유저별로 min(내 베팅, 그 유저 베팅)을 모두 더함</span>
+            <div class="f-note">내가 적게 베팅했으면, 각 상대에게서 내 베팅만큼만 가져올 수 있음</div>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">딜러비</div>
+            <span class="f-code">승리유저의 승리 금액 × 5%</span>
+            <div class="f-note">모든 유저가 이 값을 공통으로 사용 (각자 따로 계산하지 않음)</div>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">레이크 포인트</div>
+            <span class="f-code">딜러비 × (팟 투입 비율 ÷ 100) ÷ 10000</span>
+            <div class="f-note">소수점 버림 처리</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="formulaModalAmatch">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">바운티 매치 계산식</span>
+        <button type="button" class="modal-close close-formula" aria-label="닫기">
+          <svg width="15" height="15" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 1.5L11.5 11.5M11.5 1.5L1.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-list-scroll">
+        <div class="formula-section">
+          <p class="formula-group-title">턴 진행 (실시간, 기록 안 됨)</p>
+          <div class="formula-item">
+            <div class="f-label">예상 승리 금액</div>
+            <span class="f-code">토탈팟 − 본인 베팅 금액</span>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">이번 턴 바운티</div>
+            <span class="f-code">예상 승리 금액 × 1%</span>
+            <div class="f-note">소수점 버림 처리</div>
+          </div>
+        </div>
+        <div class="formula-section">
+          <p class="formula-group-title">최종 결과 (기록용)</p>
+          <div class="formula-item">
+            <div class="f-label">최종 바운티</div>
+            <span class="f-code">승리 머니 × 1%</span>
+            <div class="f-note">소수점 버림 처리</div>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">보너스 머니</div>
+            <span class="f-code">승리 금액 × 0.5%</span>
+            <div class="f-note">소수점 버림 처리 · 비율 선택과 무관하게 항상 고정</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="formulaModalSidepot">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">사이드팟 계산식</span>
+        <button type="button" class="modal-close close-formula" aria-label="닫기">
+          <svg width="15" height="15" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 1.5L11.5 11.5M11.5 1.5L1.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-list-scroll">
+        <div class="formula-section">
+          <p class="formula-group-title">사이드팟 정산 원리</p>
+          <div class="formula-item">
+            <div class="f-label">팟 분리</div>
+            <span class="f-code">베팅 금액 오름차순으로 정렬 → 단계별 마진(차액)만큼 팟 생성</span>
+            <div class="f-note">각 팟에는 해당 단계 이상 베팅한 플레이어만 참여</div>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">팟 금액</div>
+            <span class="f-code">(현재 베팅 − 이전 단계 베팅) × 해당 단계 참여 인원 수</span>
+          </div>
+          <div class="formula-item">
+            <div class="f-label">팟 승자</div>
+            <span class="f-code">해당 팟 참여자 중 가장 높은 순위(낮은 등수)의 플레이어</span>
+          </div>
+        </div>
+        <div class="formula-section">
+          <p class="formula-group-title">딜러비</p>
+          <div class="formula-item">
+            <div class="f-label">플레이어별 딜러비</div>
+            <span class="f-code">순손익(획득 − 베팅)이 양수인 경우에만, 그 순손익 금액에 딜러비 계산기와 동일한 요율 적용</span>
+            <div class="f-note">여러 팟에 걸쳐 이겼더라도 최종 순손익 기준으로 한 번만 계산 · 순손익이 0 이하면 딜러비 없음 · 게임 종류(일반/러시/코인)는 전체 공통, 딜러 아이템(골드/로얄/럭키)은 플레이어 본인 설정 기준으로 적용</div>
+          </div>
+        </div>
+        <div class="formula-section">
+          <p class="formula-group-title">최종 계산</p>
+          <div class="formula-item">
+            <div class="f-label">순손익</div>
+            <span class="f-code">획득한 팟 금액 합계 − 본인 베팅 금액</span>
+            <div class="f-note">양수 = 획득, 음수 = 손실 · 딜러비는 별도로 작게 표시</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">계산 상수 설정</span>
+        <button type="button" class="modal-close" id="closeSettingsModal" aria-label="닫기">
+          <svg width="15" height="15" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 1.5L11.5 11.5M11.5 1.5L1.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-list-scroll" id="settingsFormBody">
+
+        <div class="formula-section">
+          <p class="formula-group-title">딜러비</p>
+          <div class="settings-row"><span>750억 기준(칩)</span><input type="number" id="setDealerTier"></div>
+          <div class="settings-row"><span>기준 이하 요율(%)</span><input type="number" step="0.01" id="setDealerRateUnder"></div>
+          <div class="settings-row"><span>기준 초과 요율(%)</span><input type="number" step="0.01" id="setDealerRateOver"></div>
+          <div class="settings-row"><span>러시홀덤 추가(%p)</span><input type="number" step="0.01" id="setDealerOtherAdd"></div>
+          <div class="settings-row"><span>코인 경기장 요율(%)</span><input type="number" step="0.01" id="setDealerCoinRate"></div>
+          <div class="settings-row"><span>골드 딜러 할인(%)</span><input type="number" step="0.01" id="setDealerGold"></div>
+          <div class="settings-row"><span>로얄 딜러 할인(%)</span><input type="number" step="0.01" id="setDealerRoyal"></div>
+          <div class="settings-row"><span>럭키 딜러 개당(%p)</span><input type="number" step="0.01" id="setDealerLuckyPer"></div>
+          <div class="settings-row"><span>럭키 딜러 최대 개수</span><input type="number" id="setDealerLuckyMax"></div>
+          <div class="settings-row"><span>잭팟 적립률(%)</span><input type="number" step="0.01" id="setDealerJackpot"></div>
+        </div>
+
+        <div class="formula-section">
+          <p class="formula-group-title">포인트</p>
+          <div class="settings-row"><span>랭킹 승리 배수(1억당)</span><input type="number" step="0.01" id="setPtRankWin"></div>
+          <div class="settings-row"><span>랭킹 패배 배수(1억당)</span><input type="number" step="0.01" id="setPtRankLose"></div>
+          <div class="settings-row"><span>히든매치 배율</span><input type="number" step="0.1" id="setPtHiddenMult"></div>
+          <div class="settings-row"><span>금요일 배율</span><input type="number" step="0.1" id="setPtDayFri"></div>
+          <div class="settings-row"><span>토요일 배율</span><input type="number" step="0.1" id="setPtDaySat"></div>
+          <div class="settings-row"><span>일요일 배율</span><input type="number" step="0.1" id="setPtDaySun"></div>
+          <div class="settings-row"><span>승리 계수</span><input type="number" step="0.000001" id="setPtWinFactor"></div>
+          <div class="settings-row"><span>패배 계수</span><input type="number" step="0.0000001" id="setPtLoseFactor"></div>
+          <div class="settings-row"><span>아이템 +10%(%)</span><input type="number" step="1" id="setPtItem10"></div>
+          <div class="settings-row"><span>아이템 +30%(%)</span><input type="number" step="1" id="setPtItem30"></div>
+          <div class="settings-row"><span>아이템 +50점</span><input type="number" id="setPtItem50"></div>
+          <div class="settings-row"><span>아이템 +150점</span><input type="number" id="setPtItem150"></div>
+          <div class="settings-row dual"><span>실버 승리/패배(%)</span><input type="number" step="0.01" id="setGradeSilverWin"><input type="number" step="0.01" id="setGradeSilverLose"></div>
+          <div class="settings-row dual"><span>골드 승리/패배(%)</span><input type="number" step="0.01" id="setGradeGoldWin"><input type="number" step="0.01" id="setGradeGoldLose"></div>
+          <div class="settings-row dual"><span>다이아 승리/패배(%)</span><input type="number" step="0.01" id="setGradeDiamondWin"><input type="number" step="0.01" id="setGradeDiamondLose"></div>
+          <div class="settings-row dual"><span>프로 승리/패배(%)</span><input type="number" step="0.01" id="setGradeProWin"><input type="number" step="0.01" id="setGradeProLose"></div>
+          <div class="settings-row dual"><span>마스터 승리/패배(%)</span><input type="number" step="0.01" id="setGradeMasterWin"><input type="number" step="0.01" id="setGradeMasterLose"></div>
+        </div>
+
+        <div class="formula-section">
+          <p class="formula-group-title">레이크 레이스</p>
+          <div class="settings-row"><span>딜러비 내부 비율(%)</span><input type="number" step="0.01" id="setRakeFeeRate"></div>
+        </div>
+
+        <div class="formula-section">
+          <p class="formula-group-title">바운티 매치</p>
+          <div class="settings-row"><span>바운티 비율(%)</span><input type="number" step="0.01" id="setAmatchRate1"></div>
+          <div class="settings-row"><span>보너스 머니 비율(%)</span><input type="number" step="0.01" id="setAmatchBonus"></div>
+        </div>
+
+      </div>
+      <div class="edit-btn-row" style="padding:0 2px;">
+        <button type="button" class="edit-cancel-btn" id="resetSettingsBtn">기본값으로 초기화</button>
+        <button type="button" class="edit-save-btn" id="saveSettingsBtn">저장</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  var SETTINGS_DEFAULTS = {
+    dealer: { tier: 75000000000, rateUnder: 6, rateOver: 4, otherAdd: 1, coinRate: 2.5, gold: 30, royal: 50, luckyPer: 0.25, luckyMax: 10, jackpot: 0.7 },
+    point: {
+      rankWin: 5, rankLose: 1, hiddenMult: 2, dayFri: 1.5, daySat: 2, daySun: 2.5,
+      winFactor: 0.000001, loseFactor: 0.0000005, item10: 10, item30: 30, item50: 50, item150: 150,
+      grades: {
+        silver: { win: 0.02, lose: 0.01 },
+        gold: { win: 0.04, lose: 0.02 },
+        diamond: { win: 0.06, lose: 0.03 },
+        pro: { win: 0.08, lose: 0.04 },
+        master: { win: 0.10, lose: 0.05 }
+      }
+    },
+    rake: { feeRate: 5 },
+    amatch: { rate: 1, bonusRate: 0.5 }
+  };
+  var SETTINGS = JSON.parse(JSON.stringify(SETTINGS_DEFAULTS));
+  var TIER_THRESHOLD = SETTINGS.dealer.tier;
+
+  var current = { gameType: 'default', amount: 0, discount: 'none', items: 0 };
+
+  var amountInput = document.getElementById('amountInput');
+  var discountBtns = document.getElementById('discountBtns');
+  var itemPicker = document.getElementById('itemPicker');
+  var itemPills = document.getElementById('itemPills');
+  var noteInput = document.getElementById('noteInput');
+  var gameDefaultBtn = document.getElementById('gameDefault');
+  var gameOtherBtn = document.getElementById('gameOther');
+  var gameCoinBtn = document.getElementById('gameCoin');
+  var discGoldBtn = document.getElementById('discGold');
+  var discRoyalBtn = document.getElementById('discRoyal');
+  var gameHint = document.getElementById('gameHint');
+  var addLogBtn = document.getElementById('addLogBtn');
+  var clearHistBtn = document.getElementById('clearHistBtn');
+  var historyList = document.getElementById('historyList');
+
+  function fmt(n){
+    if (!isFinite(n)) return '0';
+    return Math.round(n).toLocaleString('ko-KR');
+  }
+
+  function fmtPoint(n){
+    if (!isFinite(n)) return '0';
+    var cleaned = Math.round(n * 100) / 100;
+    return cleaned.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+  }
+
+  function baseRate(amount){
+    var amt = Number(amount) || 0;
+    return amt <= SETTINGS.dealer.tier ? SETTINGS.dealer.rateUnder : SETTINGS.dealer.rateOver;
+  }
+
+  function discountFraction(){
+    if (current.discount === '30') return 0.30;
+    if (current.discount === '50') return 0.50;
+    return 0;
+  }
+
+  function itemPoints(){
+    var n = Math.max(0, Math.min(SETTINGS.dealer.luckyMax, Number(current.items) || 0));
+    return n * SETTINGS.dealer.luckyPer;
+  }
+
+  function discountLabel(){
+    if (current.discount === '30') return '골드 딜러 (' + SETTINGS.dealer.gold + '%)';
+    if (current.discount === '50') return '로얄 딜러 (' + SETTINGS.dealer.royal + '%)';
+    if (current.discount === 'item') {
+      var n = Math.max(0, Math.min(SETTINGS.dealer.luckyMax, Number(current.items) || 0));
+      return '럭키 딜러 ' + n + '개 (-' + itemPoints().toFixed(2) + '%)';
+    }
+    return '아이템 없음';
+  }
+
+  function compute(stateOverride){
+    var s = stateOverride || current;
+    var amt = Number(s.amount) || 0;
+    var d = SETTINGS.dealer;
+    var df = s.discount === '30' ? (d.gold / 100) : (s.discount === '50' ? (d.royal / 100) : 0);
+    var itemPts = Math.max(0, Math.min(d.luckyMax, Number(s.items) || 0)) * d.luckyPer;
+    var rate, afterDiscount;
+    if (s.gameType === 'coin') {
+      rate = d.coinRate;
+      afterDiscount = s.discount === 'item' ? rate - itemPts : rate;
+    } else {
+      rate = baseRate(amt);
+      if (s.discount === 'item') {
+        afterDiscount = rate - itemPts;
+      } else {
+        afterDiscount = rate * (1 - df);
+      }
+    }
+    if (afterDiscount < 0) afterDiscount = 0;
+    var effRate = (s.gameType === 'other') ? afterDiscount + d.otherAdd : afterDiscount;
+    var fee = Math.round(amt * (effRate / 100));
+    if (fee < 0) fee = 0;
+    if (fee > amt) fee = amt;
+    var net = amt - fee;
+    var jackpot = s.gameType === 'default' ? Math.round(fee * (d.jackpot / 100)) : 0;
+    var hasDiscount = s.discount === '30' || s.discount === '50' || (s.discount === 'item' && itemPts > 0);
+    return { rate: rate, hasDiscount: hasDiscount, fee: fee, net: net, jackpot: jackpot, effRate: effRate };
+  }
+
+  function render(){
+    var c = compute();
+    document.getElementById('rateOut').textContent = c.effRate.toFixed(2) + '%';
+    document.getElementById('feeOut').textContent = fmt(c.fee) + ' 칩';
+    document.getElementById('netOut').textContent = fmt(c.net) + ' 칩';
+    var jackpotStat = document.getElementById('jackpotStat');
+    var dealerTotals = document.getElementById('dealerTotals');
+    if (current.gameType === 'default') {
+      jackpotStat.style.display = '';
+      dealerTotals.classList.add('cols-4');
+      document.getElementById('jackpotOut').textContent = fmt(c.jackpot) + ' 칩';
+    } else {
+      jackpotStat.style.display = 'none';
+      dealerTotals.classList.remove('cols-4');
+    }
+    var pills = itemPills.querySelectorAll('.item-pill');
+    pills.forEach(function(p){
+      p.classList.toggle('active', Number(p.dataset.n) === (Number(current.items) || 0));
+    });
+  }
+
+  function eokText(n){
+    var eok = n / 100000000;
+    if (eok >= 1 && Math.round(eok) === eok) return eok.toLocaleString('ko-KR') + '억';
+    return n.toLocaleString('ko-KR');
+  }
+
+  function gameHintText(type){
+    var d = SETTINGS.dealer;
+    if (type === 'default') {
+      return '일반 경기장: 승리 칩 ' + eokText(d.tier) + ' 이하 ' + d.rateUnder + '% · ' + eokText(d.tier) + ' 초과 ' + d.rateOver + '%';
+    } else if (type === 'other') {
+      return '러시홀덤: 일반 경기장 요율(딜러 아이템 적용 후)에 +' + d.otherAdd + '%';
+    }
+    return '코인 경기장: 딜러비 ' + d.coinRate + '% 고정 · 럭키 딜러만 적용 가능';
+  }
+
+  function setGameType(type){
+    current.gameType = type;
+    gameDefaultBtn.classList.toggle('active', type === 'default');
+    gameOtherBtn.classList.toggle('active', type === 'other');
+    gameCoinBtn.classList.toggle('active', type === 'coin');
+
+    var isCoin = type === 'coin';
+    discGoldBtn.style.display = isCoin ? 'none' : '';
+    discRoyalBtn.style.display = isCoin ? 'none' : '';
+    if (isCoin && (current.discount === '30' || current.discount === '50')) {
+      current.discount = 'none';
+      discountBtns.querySelectorAll('.pill-btn').forEach(function(b){
+        b.classList.toggle('active', b.dataset.val === 'none');
+      });
+      itemPicker.style.display = 'none';
+    }
+
+    gameHint.textContent = gameHintText(type);
+    render();
+  }
+
+  function buildLuckyItemPills(){
+    itemPills.innerHTML = '';
+    for (var i = 1; i <= SETTINGS.dealer.luckyMax; i++) {
+      (function(n){
+        var pill = document.createElement('button');
+        pill.type = 'button';
+        pill.className = 'item-pill';
+        pill.dataset.n = n;
+        pill.textContent = n;
+        pill.setAttribute('aria-label', n + '개');
+        pill.addEventListener('click', function(){
+          current.items = n;
+          render();
+        });
+        itemPills.appendChild(pill);
+      })(i);
+    }
+  }
+  buildLuckyItemPills();
+
+  function setSharedAmount(value){
+    var v = Number(value) || 0;
+    if (v < 0) v = 0;
+    current.amount = v;
+    pointState.amount = v;
+    amountInput.value = v;
+    pointAmountInput.value = v;
+    render();
+    renderPoints();
+  }
+
+  amountInput.addEventListener('input', function(e){
+    current.amount = e.target.value === '' ? 0 : Number(e.target.value);
+    pointState.amount = current.amount;
+    pointAmountInput.value = e.target.value;
+    render();
+    renderPoints();
+  });
+  amountInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') {
+      if ((Number(current.amount) || 0) > 0) addEntry();
+    }
+  });
+
+  function bindQuickAdd(containerId){
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    el.querySelectorAll('button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (btn.dataset.add === 'reset') {
+          setSharedAmount(0);
+        } else {
+          setSharedAmount((Number(current.amount) || 0) + Number(btn.dataset.add));
+        }
+      });
+    });
+  }
+  bindQuickAdd('quickAddDealer');
+  bindQuickAdd('quickAddPoint');
+  discountBtns.querySelectorAll('.pill-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      current.discount = btn.dataset.val;
+      discountBtns.querySelectorAll('.pill-btn').forEach(function(b){
+        b.classList.toggle('active', b === btn);
+      });
+      itemPicker.style.display = current.discount === 'item' ? 'block' : 'none';
+      if (current.discount === 'item' && (Number(current.items) || 0) === 0) {
+        current.items = 1;
+      }
+      render();
+    });
+  });
+  gameDefaultBtn.addEventListener('click', function(){ setGameType('default'); });
+  gameOtherBtn.addEventListener('click', function(){ setGameType('other'); });
+  gameCoinBtn.addEventListener('click', function(){ setGameType('coin'); });
+
+  var pointState = { outcome: 'win', amount: 0, hidden: false, day: new Date().getDay(), occJoin: false, item: 'none', clubGrade: 'silver' };
+  var rakePlayers = [0, 0];
+  var rakeWinners = [0];
+  var modeRakeBtn = document.getElementById('modeRake');
+  var rakeCard = document.getElementById('rakeCard');
+  var rakePlayerList = document.getElementById('rakePlayerList');
+  var addRakePlayerBtn = document.getElementById('addRakePlayerBtn');
+  var rakeNoteInput = document.getElementById('rakeNoteInput');
+  var rakeJackpotInput = document.getElementById('rakeJackpotInput');
+  var addRakeLogBtn = document.getElementById('addRakeLogBtn');
+
+  var amatchPotInput = document.getElementById('amatchPotInput');
+  var amatchMyBetInput = document.getElementById('amatchMyBetInput');
+  var amatchWinInput = document.getElementById('amatchWinInput');
+  var amatchRate = SETTINGS.amatch.rate / 100;
+  var amatchNoteInput = document.getElementById('amatchNoteInput');
+  var addAmatchLogBtn = document.getElementById('addAmatchLogBtn');
+
+  var modeDealerBtn = document.getElementById('modeDealer');
+  var modePointBtn = document.getElementById('modePoint');
+  var dealerCard = document.getElementById('dealerCard');
+  var pointCard = document.getElementById('pointCard');
+  var outcomeBtns = document.getElementById('outcomeBtns');
+  var pointAmountInput = document.getElementById('pointAmountInput');
+  var pointAmountLabel = document.getElementById('pointAmountLabel');
+  var hiddenBtns = document.getElementById('hiddenBtns');
+  var dayBtns = document.getElementById('dayBtns');
+  var pointItemBtns = document.getElementById('pointItemBtns');
+  var clubGradeBtns = document.getElementById('clubGradeBtns');
+  var occJoinBtns = document.getElementById('occJoinBtns');
+  var pointNoteInput = document.getElementById('pointNoteInput');
+  var addPointLogBtn = document.getElementById('addPointLogBtn');
+
+  var pointSummaryCard = document.getElementById('pointSummaryCard');
+  var rakeSummaryCard = document.getElementById('rakeSummaryCard');
+  var modeAmatchBtn = document.getElementById('modeAmatch');
+  var amatchCard = document.getElementById('amatchCard');
+
+  var modeSidepotBtn = document.getElementById('modeSidepot');
+  var sidepotCard = document.getElementById('sidepotCard');
+
+  var modeButtons = {
+    dealer: modeDealerBtn,
+    point: modePointBtn,
+    rake: modeRakeBtn,
+    amatch: modeAmatchBtn,
+    sidepot: modeSidepotBtn
+  };
+  var modeCards = {
+    dealer: dealerCard,
+    point: pointCard,
+    rake: rakeCard,
+    amatch: amatchCard,
+    sidepot: sidepotCard
+  };
+
+  function setActiveMode(mode){
+    Object.keys(modeButtons).forEach(function(key){
+      modeButtons[key].classList.toggle('active', key === mode);
+      modeCards[key].style.display = key === mode ? '' : 'none';
+    });
+    pointSummaryCard.style.display = mode === 'point' ? '' : 'none';
+    rakeSummaryCard.style.display = mode === 'rake' ? '' : 'none';
+  }
+
+  modeDealerBtn.addEventListener('click', function(){ setActiveMode('dealer'); });
+  modePointBtn.addEventListener('click', function(){ setActiveMode('point'); });
+  modeRakeBtn.addEventListener('click', function(){ setActiveMode('rake'); });
+  modeAmatchBtn.addEventListener('click', function(){ setActiveMode('amatch'); });
+  modeSidepotBtn.addEventListener('click', function(){ setActiveMode('sidepot'); });
+
+  function dayMultiplier(day){
+    if (day === 5) return SETTINGS.point.dayFri;
+    if (day === 6) return SETTINGS.point.daySat;
+    if (day === 0) return SETTINGS.point.daySun;
+    return 1;
+  }
+  function dayLabelOf(day){
+    if (day >= 1 && day <= 4) return '월~목';
+    if (day === 5) return '금(' + SETTINGS.point.dayFri + '배)';
+    if (day === 6) return '토(' + SETTINGS.point.daySat + '배)';
+    return '일(' + SETTINGS.point.daySun + '배)';
+  }
+
+  function pointItemLabel(){
+    if (pointState.item === 'p10') return '+' + SETTINGS.point.item10 + '%';
+    if (pointState.item === 'p30') return '+' + SETTINGS.point.item30 + '%';
+    if (pointState.item === 'a50') return '+' + SETTINGS.point.item50 + '점';
+    if (pointState.item === 'a150') return '+' + SETTINGS.point.item150 + '점';
+    return '아이템 없음';
+  }
+
+  function computePoints(stateOverride){
+    var s = stateOverride || pointState;
+    var p = SETTINGS.point;
+    var amt = Number(s.amount) || 0;
+    var isWin = s.outcome === 'win';
+    var hiddenMult = s.hidden ? p.hiddenMult : 1;
+
+    var rankRate = isWin ? p.rankWin : p.rankLose;
+    var rankPoint = (amt / 100000000) * rankRate * hiddenMult;
+
+    var M = dayMultiplier(s.day);
+    var baseFactor = isWin ? p.winFactor : p.loseFactor;
+    var coreVal = amt * baseFactor * hiddenMult;
+
+    var isOccDay = s.day === 5 || s.day === 6 || s.day === 0;
+    var occPoint = isOccDay ? Math.floor(Math.floor(coreVal + 0.9) * M + 0.9) : 0;
+
+    var clubPoint;
+    if (isOccDay && s.occJoin) {
+      clubPoint = Math.floor(Math.floor(coreVal + 0.9) * M + 0.9);
+    } else if (isOccDay && !s.occJoin) {
+      clubPoint = Math.ceil(coreVal * 1);
+    } else {
+      clubPoint = Math.ceil(coreVal * M);
+    }
+
+    var itemMult = 1, itemAdd = 0;
+    if (s.item === 'p10') itemMult = 1 + p.item10 / 100;
+    else if (s.item === 'p30') itemMult = 1 + p.item30 / 100;
+    else if (s.item === 'a50') itemAdd = p.item50;
+    else if (s.item === 'a150') itemAdd = p.item150;
+
+    clubPoint = Math.ceil(clubPoint * itemMult + itemAdd);
+    occPoint = isOccDay ? Math.ceil(occPoint * itemMult + itemAdd) : 0;
+
+    var gradeRate = p.grades[s.clubGrade] || p.grades.silver;
+    var clubFundRate = isWin ? gradeRate.win : gradeRate.lose;
+    var clubFund = Math.ceil(amt * (clubFundRate / 100));
+
+    return { rankPoint: rankPoint, clubPoint: clubPoint, occPoint: occPoint, clubFund: clubFund };
+  }
+
+  function renderPoints(){
+    var p = computePoints();
+    document.getElementById('rankOut').textContent = fmtPoint(p.rankPoint);
+    document.getElementById('clubOut').textContent = fmtPoint(p.clubPoint);
+    document.getElementById('clubFundOut').textContent = fmtPoint(p.clubFund);
+    var occStat = document.getElementById('occStat');
+    var pointTotals = document.getElementById('pointTotals');
+    var isOccDay = pointState.day === 5 || pointState.day === 6 || pointState.day === 0;
+    if (pointState.occJoin && isOccDay) {
+      occStat.style.display = '';
+      pointTotals.classList.remove('cols-2');
+      pointTotals.classList.add('cols-4');
+      document.getElementById('occOut').textContent = fmtPoint(p.occPoint);
+    } else {
+      occStat.style.display = 'none';
+      pointTotals.classList.remove('cols-4');
+      pointTotals.classList.remove('cols-2');
+    }
+  }
+
+  function rakeTotal(){
+    return rakePlayers.reduce(function(sum, b){ return sum + (Number(b) || 0); }, 0);
+  }
+
+  function cappedWinMoney(idx, bets){
+    var myBet = Number(bets[idx]) || 0;
+    var sum = 0;
+    bets.forEach(function(b, j){
+      if (j !== idx) sum += Math.min(myBet, Number(b) || 0);
+    });
+    return sum;
+  }
+
+  function winnerRefBet(bets){
+    var winnerBets = rakeWinners.map(function(w){ return Number(bets[w]) || 0; });
+    return winnerBets.length ? Math.min.apply(null, winnerBets) : (Number(bets[0]) || 0);
+  }
+
+  function totalPotFromLosers(bets){
+    var ref = winnerRefBet(bets);
+    var total = 0;
+    bets.forEach(function(b, j){
+      if (rakeWinners.indexOf(j) === -1) total += Math.min(Number(b) || 0, ref);
+    });
+    return total;
+  }
+
+  function tableDealerFee(){
+    var jackpot = Number(rakeJackpotInput.value) || 0;
+    return (totalPotFromLosers(rakePlayers) + jackpot) * (SETTINGS.rake.feeRate / 100);
+  }
+
+  function cappedBet(idx, bets){
+    return Math.min(Number(bets[idx]) || 0, winnerRefBet(bets));
+  }
+
+  function cappedTotal(bets){
+    var ref = winnerRefBet(bets);
+    return bets.reduce(function(sum, b){ return sum + Math.min(Number(b) || 0, ref); }, 0);
+  }
+
+  function computeRakePure(bets, idx, sharedFee, jackpot){
+    var rawTotal = bets.reduce(function(a, b){ return a + (Number(b) || 0); }, 0);
+    var bet = Number(bets[idx]) || 0;
+    var cTotal = cappedTotal(bets);
+    var cBet = cappedBet(idx, bets);
+    var potRatio = cTotal > 0 ? Math.round((cBet / cTotal) * 100 * 100) / 100 : 0;
+    var isWinner = rakeWinners.indexOf(idx) !== -1;
+    var winMoney = 0;
+    if (isWinner && rakeWinners.length) {
+      var potTotal = totalPotFromLosers(bets);
+      var jackpotShare = (Number(jackpot) || 0) / rakeWinners.length;
+      winMoney = (potTotal / rakeWinners.length) + jackpotShare;
+    }
+    var dealerFee = sharedFee;
+    var ratioFraction = potRatio / 100;
+    var reward = Math.floor(dealerFee * ratioFraction / 10000);
+    if (reward < 0) reward = 0;
+    return { potRatio: potRatio, reward: reward, winMoney: winMoney, bet: bet, total: rawTotal, dealerFee: dealerFee };
+  }
+
+  function computeRakeFor(idx){
+    var jackpot = Number(rakeJackpotInput.value) || 0;
+    return computeRakePure(rakePlayers, idx, tableDealerFee(), jackpot);
+  }
+
+  function createRakeRowEl(){
+    var row = document.createElement('div');
+    row.className = 'rake-row';
+
+    var label = document.createElement('span');
+    label.className = 'rake-row-label';
+
+    var input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.value = 0;
+
+    var ratioSpan = document.createElement('span');
+    ratioSpan.className = 'rake-row-ratio';
+
+    var pointSpan = document.createElement('span');
+    pointSpan.className = 'rake-row-point';
+
+    var removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'rake-row-remove';
+    removeBtn.setAttribute('aria-label', '유저 제거');
+    removeBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 1.5L11.5 11.5M11.5 1.5L1.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+
+    row.appendChild(label);
+    row.appendChild(input);
+    row.appendChild(ratioSpan);
+    row.appendChild(pointSpan);
+    row.appendChild(removeBtn);
+    return row;
+  }
+
+  function rowIndexOf(row){
+    return Array.prototype.indexOf.call(rakePlayerList.children, row);
+  }
+
+  rakePlayerList.addEventListener('input', function(e){
+    if (e.target.tagName !== 'INPUT') return;
+    var row = e.target.closest('.rake-row');
+    var idx = rowIndexOf(row);
+    rakePlayers[idx] = e.target.value === '' ? 0 : Number(e.target.value);
+    updateRakeValues();
+  });
+  rakePlayerList.addEventListener('keydown', function(e){
+    if (e.target.tagName !== 'INPUT' || e.key !== 'Enter') return;
+    e.preventDefault();
+    var row = e.target.closest('.rake-row');
+    var idx = rowIndexOf(row);
+    var rows = rakePlayerList.querySelectorAll('.rake-row');
+    if (idx < rows.length - 1) {
+      rows[idx + 1].querySelector('input').focus();
+      rows[idx + 1].querySelector('input').select();
+    } else if (rakeTotal() > 0) {
+      addRakeEntry();
+    }
+  });
+  rakePlayerList.addEventListener('click', function(e){
+    var lbl = e.target.closest('.rake-row-label');
+    if (lbl) {
+      var lblRow = lbl.closest('.rake-row');
+      var lblIdx = rowIndexOf(lblRow);
+      var pos = rakeWinners.indexOf(lblIdx);
+      if (pos !== -1) {
+        if (rakeWinners.length > 1) rakeWinners.splice(pos, 1);
+      } else {
+        rakeWinners.push(lblIdx);
+        rakeWinners.sort(function(a, b){ return a - b; });
+      }
+      updateRakeValues();
+      updateRakeSummary();
+      return;
+    }
+    var btn = e.target.closest('.rake-row-remove');
+    if (!btn) return;
+    if (rakePlayers.length <= 1) return;
+    var row = btn.closest('.rake-row');
+    var idx = rowIndexOf(row);
+    rakePlayers.splice(idx, 1);
+    rakeBaseValues.splice(idx, 1);
+    rakeWinners = rakeWinners.filter(function(w){ return w !== idx; }).map(function(w){ return w > idx ? w - 1 : w; });
+    if (!rakeWinners.length) rakeWinners = [0];
+    row.remove();
+    updateRakeValues();
+    buildRakeSummaryGrid();
+  });
+
+  function buildRakeRows(){
+    rakePlayerList.innerHTML = '';
+    rakePlayers.forEach(function(){
+      rakePlayerList.appendChild(createRakeRowEl());
+    });
+    updateRakeValues();
+  }
+
+  function updateRakeValues(){
+    var total = rakeTotal();
+    var rows = rakePlayerList.querySelectorAll('.rake-row');
+    rows.forEach(function(row, idx){
+      var r = computeRakeFor(idx);
+      var isWinner = rakeWinners.indexOf(idx) !== -1;
+      var lblEl = row.querySelector('.rake-row-label');
+      lblEl.textContent = isWinner ? '승리유저' : ('P' + (idx + 1));
+      lblEl.classList.toggle('is-winner', isWinner);
+      var input = row.querySelector('input');
+      if (Number(input.value) !== (Number(rakePlayers[idx]) || 0) && document.activeElement !== input) {
+        input.value = rakePlayers[idx];
+      }
+      row.querySelector('.rake-row-ratio').textContent = r.potRatio.toFixed(2) + '%';
+      row.querySelector('.rake-row-point').textContent = fmt(r.reward);
+      row.querySelector('.rake-row-remove').style.visibility = rakePlayers.length <= 1 ? 'hidden' : 'visible';
+    });
+    document.getElementById('totalBetOut2').textContent = fmt(total);
+    document.getElementById('tableFeeOut').textContent = fmt(tableDealerFee());
+    var totalWinMoney = rakeWinners.reduce(function(sum, w){ return sum + computeRakeFor(w).winMoney; }, 0);
+    document.getElementById('myWinOut').textContent = fmt(totalWinMoney);
+    addRakePlayerBtn.disabled = rakePlayers.length >= 9;
+  }
+
+  function renderRakePlayers(){
+    buildRakeRows();
+  }
+
+  function computeAmatchTurn(){
+    var pot = Number(amatchPotInput.value) || 0;
+    var myBet = Number(amatchMyBetInput.value) || 0;
+    var win = pot - myBet;
+    if (win < 0) win = 0;
+    return { win: win, a: Math.floor(win * amatchRate), bonus: Math.floor(win * (SETTINGS.amatch.bonusRate / 100)) };
+  }
+  function computeAmatchFinal(){
+    var win = Number(amatchWinInput.value) || 0;
+    return { a: Math.floor(win * amatchRate), bonus: Math.floor(win * (SETTINGS.amatch.bonusRate / 100)) };
+  }
+  function renderAmatch(){
+    var t = computeAmatchTurn();
+    document.getElementById('amatchTurnWinOut').textContent = fmt(t.win);
+    document.getElementById('amatchTurnAOut').textContent = fmt(t.a);
+    document.getElementById('amatchTurnBonusOut').textContent = fmt(t.bonus);
+    var f = computeAmatchFinal();
+    document.getElementById('amatchWinOut').textContent = fmt(Number(amatchWinInput.value) || 0);
+    document.getElementById('amatchFinalAOut').textContent = fmt(f.a);
+    document.getElementById('amatchFinalBonusOut').textContent = fmt(f.bonus);
+  }
+  amatchPotInput.addEventListener('input', renderAmatch);
+  amatchMyBetInput.addEventListener('input', renderAmatch);
+  amatchWinInput.addEventListener('input', renderAmatch);
+  function refreshAmatchRate(){
+    amatchRate = SETTINGS.amatch.rate / 100;
+  }
+  refreshAmatchRate();
+
+  addRakePlayerBtn.addEventListener('click', function(){
+    if (rakePlayers.length >= 9) return;
+    rakePlayers.push(0);
+    rakeBaseValues.push(0);
+    rakePlayerList.appendChild(createRakeRowEl());
+    updateRakeValues();
+    buildRakeSummaryGrid();
+  });
+
+  var resetRakePlayersBtn = document.getElementById('resetRakePlayersBtn');
+  resetRakePlayersBtn.addEventListener('click', function(){
+    rakePlayers = rakePlayers.map(function(){ return 0; });
+    updateRakeValues();
+  });
+  rakeJackpotInput.addEventListener('input', function(){
+    updateRakeValues();
+  });
+
+  outcomeBtns.querySelectorAll('.pill-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      pointState.outcome = btn.dataset.val;
+      outcomeBtns.querySelectorAll('.pill-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      pointAmountLabel.textContent = pointState.outcome === 'win' ? '획득 칩' : '손실 칩';
+      renderPoints();
+    });
+  });
+
+  pointAmountInput.addEventListener('input', function(e){
+    pointState.amount = e.target.value === '' ? 0 : Number(e.target.value);
+    current.amount = pointState.amount;
+    amountInput.value = e.target.value;
+    renderPoints();
+    render();
+  });
+  pointAmountInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') {
+      if ((Number(pointState.amount) || 0) > 0) addPointEntry();
+    }
+  });
+
+  hiddenBtns.querySelectorAll('.pill-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      pointState.hidden = btn.dataset.val === '1';
+      hiddenBtns.querySelectorAll('.pill-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      renderPoints();
+    });
+  });
+
+  dayBtns.querySelectorAll('.pill-btn').forEach(function(btn){
+    var isMonThu = btn.id === 'dayMonThu';
+    var val = Number(btn.dataset.val);
+    var matchesToday = isMonThu ? (pointState.day >= 1 && pointState.day <= 4) : (val === pointState.day);
+    if (matchesToday) btn.classList.add('active');
+    btn.addEventListener('click', function(){
+      pointState.day = isMonThu ? 1 : val;
+      dayBtns.querySelectorAll('.pill-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      renderPoints();
+    });
+  });
+
+  occJoinBtns.querySelectorAll('.pill-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      pointState.occJoin = btn.dataset.val === '1';
+      occJoinBtns.querySelectorAll('.pill-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      renderPoints();
+    });
+  });
+
+  pointItemBtns.querySelectorAll('.pill-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      pointState.item = btn.dataset.val;
+      pointItemBtns.querySelectorAll('.pill-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      renderPoints();
+    });
+  });
+
+  clubGradeBtns.querySelectorAll('.pill-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      pointState.clubGrade = btn.dataset.val;
+      clubGradeBtns.querySelectorAll('.pill-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      renderPoints();
+    });
+  });
+
+  /* ===== SIDEPOT CALCULATOR ===== */
+  var spPlayers = [
+    { bet: 0, rank: 1, discount: 'none', items: 0 },
+    { bet: 0, rank: 2, discount: 'none', items: 0 }
+  ];
+  var spPlayerList = document.getElementById('spPlayerList');
+  var addSpPlayerBtn = document.getElementById('addSpPlayerBtn');
+  var resetSpPlayersBtn = document.getElementById('resetSpPlayersBtn');
+  var spNoteInput = document.getElementById('spNoteInput');
+  var addSpLogBtn = document.getElementById('addSpLogBtn');
+  var spSettlementSteps = document.getElementById('spSettlementSteps');
+  var spSettlementModal = document.getElementById('spSettlementModal');
+  var openSpSettlementBtn = document.getElementById('openSpSettlementBtn');
+  var closeSpSettlementModal = document.getElementById('closeSpSettlementModal');
+  var spResultPanel = document.getElementById('spResultPanel');
+  var spResultList = document.getElementById('spResultList');
+
+  /* sidepot dealer fee state: game type is shared across the table, dealer item is per-player */
+  var spState = { gameType: 'default' };
+  var spGameBtns = document.getElementById('spGameBtns');
+  var spGameHint = document.getElementById('spGameHint');
+
+  function spUpdateRowItemOptions(){
+    var isCoin = spState.gameType === 'coin';
+    var rows = spPlayerList.querySelectorAll('.sp-row');
+    rows.forEach(function(row, idx){
+      var itemSelect = row.querySelector('.sp-item-select');
+      var goldOpt = itemSelect.querySelector('option[value="30"]');
+      var royalOpt = itemSelect.querySelector('option[value="50"]');
+      if (goldOpt) goldOpt.disabled = isCoin;
+      if (royalOpt) royalOpt.disabled = isCoin;
+      if (isCoin && (spPlayers[idx].discount === '30' || spPlayers[idx].discount === '50')) {
+        spPlayers[idx].discount = 'none';
+        itemSelect.value = 'none';
+      }
+    });
+  }
+
+  function spSetGameType(type){
+    spState.gameType = type;
+    spGameBtns.querySelectorAll('.pill-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.val === type); });
+    spGameHint.textContent = gameHintText(type);
+    spUpdateRowItemOptions();
+    renderSpResults();
+  }
+
+  spGameBtns.querySelectorAll('.pill-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){ spSetGameType(btn.dataset.val); });
+  });
+
+  /* compute dealer fee for a given pot amount using existing rate logic (per-player item settings) */
+  function computeDealerFeeForAmount(amount, gameType, playerItemState){
+    return compute({ gameType: gameType, amount: amount, discount: playerItemState.discount, items: playerItemState.items });
+  }
+
+  function computeSidepots(players, gameType){
+    if (!players.length) return { pots: [], results: [], totalFee: 0 };
+    var indexed = players.map(function(p, i){
+      return {
+        idx: i,
+        bet: Number(p.bet) || 0,
+        rank: Number(p.rank) || (i + 1),
+        label: String.fromCharCode(65 + i),
+        discount: p.discount || 'none',
+        items: Number(p.items) || 0
+      };
+    });
+    var sorted = indexed.slice().sort(function(a, b){ return a.bet - b.bet || a.idx - b.idx; });
+    var pots = [];
+    var prevBet = 0;
+    for (var i = 0; i < sorted.length; i++) {
+      var currentBet = sorted[i].bet;
+      if (currentBet <= prevBet) continue;
+      var margin = currentBet - prevBet;
+      var eligible = indexed.filter(function(p){ return p.bet > prevBet; });
+      var potAmount = margin * eligible.length;
+      var winner = eligible.slice().sort(function(a, b){ return a.rank - b.rank || a.idx - b.idx; })[0];
+      pots.push({
+        level: pots.length + 1,
+        margin: margin,
+        prevBet: prevBet,
+        currentBet: currentBet,
+        eligible: eligible.map(function(p){ return p.label; }),
+        eligibleIdx: eligible.map(function(p){ return p.idx; }),
+        potAmount: potAmount,
+        winner: winner,
+        winnerLabel: winner.label
+      });
+      prevBet = currentBet;
+    }
+    // dealer fee is based on each player's OVERALL net profit for the whole hand
+    // (not per individual side pot) — a player who nets 0 or a loss pays no fee,
+    // even if they happened to win one of the intermediate side pots along the way.
+    var totalFee = 0;
+    var results = indexed.map(function(p){
+      var totalWon = 0;
+      var wonPots = [];
+      pots.forEach(function(pot){
+        if (pot.winner.idx === p.idx) {
+          totalWon += pot.potAmount;
+          wonPots.push(pot.level);
+        }
+      });
+      var net = totalWon - p.bet;
+      var playerFee = 0;
+      var effRate = 0;
+      if (gameType && net > 0) {
+        var feeResult = computeDealerFeeForAmount(net, gameType, { discount: p.discount, items: p.items });
+        playerFee = feeResult.fee;
+        effRate = feeResult.effRate;
+      }
+      totalFee += playerFee;
+      var netAfterFee = net - playerFee;
+      return {
+        idx: p.idx,
+        label: p.label,
+        bet: p.bet,
+        rank: p.rank,
+        totalWon: totalWon,
+        net: net,
+        dealerFee: playerFee,
+        effRate: effRate,
+        netAfterFee: netAfterFee,
+        wonPots: wonPots
+      };
+    });
+    return { pots: pots, results: results, totalFee: totalFee };
+  }
+
+  function createSpRowEl(){
+    var row = document.createElement('div');
+    row.className = 'sp-row';
+    var line1 = document.createElement('div');
+    line1.className = 'sp-row-line1';
+    var label = document.createElement('span');
+    label.className = 'sp-row-label';
+    var betInput = document.createElement('input');
+    betInput.type = 'number';
+    betInput.min = '0';
+    betInput.value = 0;
+    betInput.placeholder = '베팅 금액';
+    var rankWrap = document.createElement('div');
+    rankWrap.className = 'sp-rank-wrap';
+    var rankLabel = document.createElement('span');
+    rankLabel.className = 'sp-rank-label';
+    rankLabel.textContent = '순위';
+    var rankSelect = document.createElement('select');
+    rankSelect.className = 'sp-rank-select';
+    rankWrap.appendChild(rankLabel);
+    rankWrap.appendChild(rankSelect);
+    var removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'sp-row-remove';
+    removeBtn.setAttribute('aria-label', '유저 제거');
+    removeBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 1.5L11.5 11.5M11.5 1.5L1.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+    line1.appendChild(label);
+    line1.appendChild(betInput);
+    line1.appendChild(rankWrap);
+    line1.appendChild(removeBtn);
+
+    var line2 = document.createElement('div');
+    line2.className = 'sp-row-line2';
+    var itemSelect = document.createElement('select');
+    itemSelect.className = 'sp-item-select';
+    var opts = [
+      { val: 'none', text: '딜러 아이템 없음' },
+      { val: '30', text: '골드 딜러 (' + SETTINGS.dealer.gold + '%)' },
+      { val: '50', text: '로얄 딜러 (' + SETTINGS.dealer.royal + '%)' },
+      { val: 'item', text: '럭키 딜러' }
+    ];
+    opts.forEach(function(o){
+      var opt = document.createElement('option');
+      opt.value = o.val;
+      opt.textContent = o.text;
+      itemSelect.appendChild(opt);
+    });
+    var stepper = document.createElement('div');
+    stepper.className = 'sp-lucky-stepper';
+    var minusBtn = document.createElement('button');
+    minusBtn.type = 'button';
+    minusBtn.className = 'sp-lucky-step-btn sp-lucky-minus';
+    minusBtn.textContent = '−';
+    var countVal = document.createElement('span');
+    countVal.className = 'sp-lucky-count-val';
+    countVal.textContent = '0개';
+    var plusBtn = document.createElement('button');
+    plusBtn.type = 'button';
+    plusBtn.className = 'sp-lucky-step-btn sp-lucky-plus';
+    plusBtn.textContent = '+';
+    stepper.appendChild(minusBtn);
+    stepper.appendChild(countVal);
+    stepper.appendChild(plusBtn);
+    line2.appendChild(itemSelect);
+    line2.appendChild(stepper);
+
+    row.appendChild(line1);
+    row.appendChild(line2);
+    return row;
+  }
+
+  function spRowIndex(row){
+    return Array.prototype.indexOf.call(spPlayerList.children, row);
+  }
+
+  function updateSpRankOptions(){
+    var count = spPlayers.length;
+    var rows = spPlayerList.querySelectorAll('.sp-row');
+    rows.forEach(function(row, idx){
+      var select = row.querySelector('.sp-rank-select');
+      var currentVal = spPlayers[idx].rank;
+      select.innerHTML = '';
+      for (var r = 1; r <= count; r++) {
+        var opt = document.createElement('option');
+        opt.value = r;
+        opt.textContent = r + '등';
+        if (r === currentVal) opt.selected = true;
+        select.appendChild(opt);
+      }
+    });
+  }
+
+  function updateSpLabels(){
+    var rows = spPlayerList.querySelectorAll('.sp-row');
+    rows.forEach(function(row, idx){
+      row.querySelector('.sp-row-label').textContent = String.fromCharCode(65 + idx);
+      row.querySelector('.sp-row-remove').style.visibility = spPlayers.length <= 2 ? 'hidden' : 'visible';
+    });
+    addSpPlayerBtn.disabled = spPlayers.length >= 9;
+  }
+
+  var lastSpResult = null;
+
+  function renderSpResults(){
+    var hasBet = spPlayers.some(function(p){ return (Number(p.bet) || 0) > 0; });
+    if (!hasBet) {
+      spResultPanel.style.display = 'none';
+      openSpSettlementBtn.style.display = 'none';
+      lastSpResult = null;
+      return;
+    }
+    var result = computeSidepots(spPlayers, spState.gameType);
+    lastSpResult = result;
+
+    // show/hide settlement button
+    openSpSettlementBtn.style.display = result.pots.length ? '' : 'none';
+
+    // final results
+    if (result.results.length) {
+      spResultPanel.style.display = '';
+      spResultList.innerHTML = '';
+      result.results.forEach(function(r){
+        var item = document.createElement('div');
+        item.className = 'sp-result-item';
+        var header = document.createElement('div');
+        header.className = 'sp-result-header';
+        var name = document.createElement('span');
+        name.className = 'sp-result-name';
+        name.textContent = r.label + ' (' + r.rank + '등, 베팅 ' + fmt(r.bet) + '칩)';
+        var netVal = r.net;
+        var net = document.createElement('span');
+        net.className = 'sp-result-net ' + (netVal > 0 ? 'win' : (netVal < 0 ? 'lose' : 'zero'));
+        net.textContent = (netVal > 0 ? '+' : '') + fmt(netVal) + '칩';
+        header.appendChild(name);
+        header.appendChild(net);
+        var detail = document.createElement('div');
+        detail.className = 'sp-result-detail';
+        if (r.wonPots.length) {
+          var detailText = r.wonPots.map(function(p){ return p + '차 팟'; }).join(' + ') + '에서 총 ' + fmt(r.totalWon) + '칩 획득';
+          if (r.dealerFee > 0) {
+            detailText += ' · 딜러비 ' + fmt(r.dealerFee) + '칩';
+          }
+          detail.textContent = detailText;
+        } else {
+          detail.textContent = '획득한 팟 없음';
+        }
+        item.appendChild(header);
+        item.appendChild(detail);
+        spResultList.appendChild(item);
+      });
+    } else {
+      spResultPanel.style.display = 'none';
+    }
+  }
+
+  function populateSpSettlementModal(){
+    if (!lastSpResult || !lastSpResult.pots.length) return;
+    spSettlementSteps.innerHTML = '';
+    lastSpResult.pots.forEach(function(pot){
+      var step = document.createElement('div');
+      step.className = 'sp-settlement-step';
+      var title = document.createElement('div');
+      title.className = 'sp-step-title';
+      title.textContent = pot.level + '차 정산 (' + pot.winnerLabel + ' 기준, 마진 ' + fmt(pot.margin) + '칩)';
+      var body = document.createElement('div');
+      body.className = 'sp-step-body';
+      var bodyHtml = '참여: <strong>' + pot.eligible.join(', ') + '</strong> (' + pot.eligible.length + '명)<br>' +
+        '팟 금액: ' + fmt(pot.margin) + ' × ' + pot.eligible.length + ' = <strong>' + fmt(pot.potAmount) + '칩</strong><br>' +
+        '승자: <strong>' + pot.winnerLabel + '</strong> (' + pot.winner.rank + '등)';
+      body.innerHTML = bodyHtml;
+      step.appendChild(title);
+      step.appendChild(body);
+      spSettlementSteps.appendChild(step);
+    });
+    // summary at the end
+    var summary = document.createElement('div');
+    summary.className = 'sp-settlement-step';
+    summary.style.background = 'var(--blue-tint)';
+    summary.style.border = '1px solid var(--blue-tint-strong)';
+    var sTitle = document.createElement('div');
+    sTitle.className = 'sp-step-title';
+    sTitle.textContent = '최종 결과';
+    var sBody = document.createElement('div');
+    sBody.className = 'sp-step-body';
+    sBody.innerHTML = lastSpResult.results.map(function(r){
+      var netVal = r.net;
+      var color = netVal > 0 ? '#1a8f4a' : (netVal < 0 ? 'var(--red)' : 'var(--ink-faint)');
+      var line = '<strong>' + r.label + '</strong> (' + r.rank + '등): <span style="color:' + color + ';font-weight:700;">' + (netVal > 0 ? '+' : '') + fmt(netVal) + '칩</span>';
+      if (r.dealerFee > 0) {
+        line += ' <span style="color:var(--ink-faint);font-size:12px;">(딜러비 ' + fmt(r.dealerFee) + ')</span>';
+      }
+      return line;
+    }).join('<br>');
+    summary.appendChild(sTitle);
+    summary.appendChild(sBody);
+    spSettlementSteps.appendChild(summary);
+  }
+
+  openSpSettlementBtn.addEventListener('click', function(){
+    populateSpSettlementModal();
+    spSettlementModal.classList.add('open');
+  });
+  closeSpSettlementModal.addEventListener('click', function(){
+    spSettlementModal.classList.remove('open');
+  });
+  spSettlementModal.addEventListener('click', function(e){
+    if (e.target === spSettlementModal) spSettlementModal.classList.remove('open');
+  });
+
+  function spSyncRowItemUI(row, idx){
+    var itemSelect = row.querySelector('.sp-item-select');
+    var stepper = row.querySelector('.sp-lucky-stepper');
+    var countVal = row.querySelector('.sp-lucky-count-val');
+    var minusBtn = row.querySelector('.sp-lucky-minus');
+    var plusBtn = row.querySelector('.sp-lucky-plus');
+    var isLucky = (spPlayers[idx].discount || 'none') === 'item';
+    itemSelect.value = spPlayers[idx].discount || 'none';
+    stepper.style.display = isLucky ? 'flex' : 'none';
+    var n = Number(spPlayers[idx].items) || 0;
+    countVal.textContent = n + '개';
+    minusBtn.disabled = n <= 0;
+    plusBtn.disabled = n >= SETTINGS.dealer.luckyMax;
+  }
+
+  function buildSpRows(){
+    spPlayerList.innerHTML = '';
+    spPlayers.forEach(function(){ spPlayerList.appendChild(createSpRowEl()); });
+    updateSpLabels();
+    updateSpRankOptions();
+    var rows = spPlayerList.querySelectorAll('.sp-row');
+    rows.forEach(function(row, idx){
+      var inp = row.querySelector('input');
+      if (Number(inp.value) !== (Number(spPlayers[idx].bet) || 0)) inp.value = spPlayers[idx].bet;
+      spSyncRowItemUI(row, idx);
+    });
+    spUpdateRowItemOptions();
+    renderSpResults();
+  }
+
+  spPlayerList.addEventListener('input', function(e){
+    if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
+      var row = e.target.closest('.sp-row');
+      var idx = spRowIndex(row);
+      spPlayers[idx].bet = e.target.value === '' ? 0 : Number(e.target.value);
+      renderSpResults();
+    }
+  });
+  spPlayerList.addEventListener('change', function(e){
+    var row = e.target.closest('.sp-row');
+    if (!row) return;
+    var idx = spRowIndex(row);
+    if (e.target.classList.contains('sp-rank-select')) {
+      spPlayers[idx].rank = Number(e.target.value);
+      renderSpResults();
+    } else if (e.target.classList.contains('sp-item-select')) {
+      spPlayers[idx].discount = e.target.value;
+      if (e.target.value !== 'item') spPlayers[idx].items = 0;
+      spSyncRowItemUI(row, idx);
+      renderSpResults();
+    }
+  });
+  spPlayerList.addEventListener('click', function(e){
+    var removeBtn = e.target.closest('.sp-row-remove');
+    if (removeBtn) {
+      if (spPlayers.length <= 2) return;
+      var row1 = removeBtn.closest('.sp-row');
+      var idx1 = spRowIndex(row1);
+      spPlayers.splice(idx1, 1);
+      row1.remove();
+      updateSpLabels();
+      updateSpRankOptions();
+      renderSpResults();
+      return;
+    }
+    var stepBtn = e.target.closest('.sp-lucky-step-btn');
+    if (stepBtn) {
+      var row2 = stepBtn.closest('.sp-row');
+      var idx2 = spRowIndex(row2);
+      var cur = Number(spPlayers[idx2].items) || 0;
+      var dir = stepBtn.classList.contains('sp-lucky-minus') ? -1 : 1;
+      var next = Math.max(0, Math.min(SETTINGS.dealer.luckyMax, cur + dir));
+      spPlayers[idx2].items = next;
+      spSyncRowItemUI(row2, idx2);
+      renderSpResults();
+      return;
+    }
+  });
+
+  addSpPlayerBtn.addEventListener('click', function(){
+    if (spPlayers.length >= 9) return;
+    spPlayers.push({ bet: 0, rank: spPlayers.length + 1, discount: 'none', items: 0 });
+    var newRow = createSpRowEl();
+    spPlayerList.appendChild(newRow);
+    updateSpLabels();
+    updateSpRankOptions();
+    spSyncRowItemUI(newRow, spPlayers.length - 1);
+    spUpdateRowItemOptions();
+    renderSpResults();
+  });
+
+  resetSpPlayersBtn.addEventListener('click', function(){
+    spPlayers = spPlayers.map(function(p, i){ return { bet: 0, rank: i + 1, discount: 'none', items: 0 }; });
+    var rows = spPlayerList.querySelectorAll('.sp-row');
+    rows.forEach(function(row, idx){
+      row.querySelector('input').value = 0;
+      spSyncRowItemUI(row, idx);
+    });
+    updateSpRankOptions();
+    renderSpResults();
+  });
+
+  function buildSpEntry(){
+    var result = computeSidepots(spPlayers, spState.gameType);
+    var players = result.results.map(function(r, i){
+      return { label: r.label, bet: r.bet, rank: r.rank, totalWon: r.totalWon, net: r.net, dealerFee: r.dealerFee, netAfterFee: r.netAfterFee, wonPots: r.wonPots, discount: spPlayers[i].discount || 'none', items: Number(spPlayers[i].items) || 0 };
+    });
+    return {
+      ts: Date.now(),
+      key: 'dealer-log:' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      type: 'sidepot',
+      totalBet: spPlayers.reduce(function(s, p){ return s + (Number(p.bet) || 0); }, 0),
+      totalFee: result.totalFee,
+      spGameType: spState.gameType,
+      players: players,
+      pots: result.pots.map(function(pot){
+        return { level: pot.level, margin: pot.margin, eligible: pot.eligible, potAmount: pot.potAmount, winnerLabel: pot.winnerLabel };
+      }),
+      note: spNoteInput.value.trim()
+    };
+  }
+
+  function addSpEntry(){
+    var entry = buildSpEntry();
+    historyEntries.unshift(entry);
+    renderHistoryList();
+    spNoteInput.value = '';
+    persistSet(entry.key, JSON.stringify(entry));
+  }
+
+  addSpLogBtn.addEventListener('click', function(){ addSpEntry(); });
+  /* ===== END SIDEPOT ===== */
+
+  var historyEntries = [];
+
+  function hasStorage(){
+    return typeof window !== 'undefined' && window.storage && typeof window.storage.list === 'function';
+  }
+
+  function hasLocalStorage(){
+    try {
+      var t = '__test__';
+      localStorage.setItem(t, '1');
+      localStorage.removeItem(t);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function persistSet(key, value){
+    if (hasStorage()) {
+      window.storage.set(key, value, false).catch(function(){});
+    } else if (hasLocalStorage()) {
+      try { localStorage.setItem(key, value); } catch (e) {}
+    }
+  }
+
+  function persistDelete(key){
+    if (hasStorage()) {
+      window.storage.delete(key, false).catch(function(){});
+    } else if (hasLocalStorage()) {
+      try { localStorage.removeItem(key); } catch (e) {}
+    }
+  }
+
+  async function persistLoadAll(prefix){
+    var out = [];
+    if (hasStorage()) {
+      try {
+        var listResult = await window.storage.list(prefix, false);
+        var keys = (listResult && listResult.keys) ? listResult.keys : [];
+        for (var i = 0; i < keys.length; i++) {
+          try {
+            var res = await window.storage.get(keys[i], false);
+            if (res && res.value) out.push(JSON.parse(res.value));
+          } catch (e) {}
+        }
+      } catch (e) {}
+    } else if (hasLocalStorage()) {
+      try {
+        for (var j = 0; j < localStorage.length; j++) {
+          var k = localStorage.key(j);
+          if (k && k.indexOf(prefix) === 0) {
+            try { out.push(JSON.parse(localStorage.getItem(k))); } catch (e) {}
+          }
+        }
+      } catch (e) {}
+    }
+    return out;
+  }
+
+  function buildEntry(){
+    var c = compute();
+    return {
+      ts: Date.now(),
+      key: 'dealer-log:' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      type: 'dealer',
+      amount: Number(current.amount) || 0,
+      gameType: current.gameType,
+      discount: current.discount,
+      items: current.items,
+      discountLabel: discountLabel(),
+      effRate: c.effRate,
+      fee: c.fee,
+      net: c.net,
+      jackpot: c.jackpot,
+      note: noteInput.value.trim()
+    };
+  }
+
+  function addEntry(){
+    var entry = buildEntry();
+    historyEntries.unshift(entry);
+    renderHistoryList();
+    noteInput.value = '';
+    persistSet(entry.key, JSON.stringify(entry));
+  }
+
+  function clubGradeLabel(){
+    var map = { silver: '실버', gold: '골드', diamond: '다이아', pro: '프로', master: '마스터' };
+    return map[pointState.clubGrade] || '실버';
+  }
+
+  function buildPointEntry(){
+    var p = computePoints();
+    return {
+      ts: Date.now(),
+      key: 'dealer-log:' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      type: 'point',
+      amount: Number(pointState.amount) || 0,
+      outcome: pointState.outcome,
+      hidden: pointState.hidden,
+      day: pointState.day,
+      dayLabel: dayLabelOf(pointState.day),
+      occJoin: pointState.occJoin,
+      item: pointState.item,
+      itemLabel: pointItemLabel(),
+      clubGrade: pointState.clubGrade,
+      clubGradeLabel: clubGradeLabel(),
+      rankPoint: p.rankPoint,
+      clubPoint: p.clubPoint,
+      occPoint: p.occPoint,
+      clubFund: p.clubFund,
+      note: pointNoteInput.value.trim()
+    };
+  }
+
+  function addPointEntry(){
+    var entry = buildPointEntry();
+    historyEntries.unshift(entry);
+    renderHistoryList();
+    pointNoteInput.value = '';
+    persistSet(entry.key, JSON.stringify(entry));
+  }
+
+  function buildRakeEntry(){
+    var players = rakePlayers.map(function(bet, idx){
+      var r = computeRakeFor(idx);
+      return { label: rakeWinners.indexOf(idx) !== -1 ? '승리유저' : ('P' + (idx + 1)), bet: r.bet, potRatio: r.potRatio, winMoney: r.winMoney, reward: r.reward };
+    });
+    return {
+      ts: Date.now(),
+      key: 'dealer-log:' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      type: 'rake',
+      totalBet: rakeTotal(),
+      jackpot: Number(rakeJackpotInput.value) || 0,
+      players: players,
+      note: rakeNoteInput.value.trim()
+    };
+  }
+
+  function addRakeEntry(){
+    var entry = buildRakeEntry();
+    historyEntries.unshift(entry);
+    renderHistoryList();
+    rakeNoteInput.value = '';
+    persistSet(entry.key, JSON.stringify(entry));
+  }
+
+  function buildAmatchEntry(){
+    var win = Number(amatchWinInput.value) || 0;
+    var f = computeAmatchFinal();
+    return {
+      ts: Date.now(),
+      key: 'dealer-log:' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      type: 'amatch',
+      amount: win,
+      rate: amatchRate,
+      reward: f.a,
+      bonus: f.bonus,
+      note: amatchNoteInput.value.trim()
+    };
+  }
+
+  function addAmatchEntry(){
+    var entry = buildAmatchEntry();
+    historyEntries.unshift(entry);
+    renderHistoryList();
+    amatchNoteInput.value = '';
+    persistSet(entry.key, JSON.stringify(entry));
+  }
+
+  function deleteEntry(key){
+    historyEntries = historyEntries.filter(function(e){ return e.key !== key; });
+    renderHistoryList();
+    persistDelete(key);
+  }
+
+  function clickByVal(container, val){
+    var btn = container.querySelector('.pill-btn[data-val="' + val + '"]');
+    if (btn) btn.click();
+    return btn;
+  }
+
+  var editingKey = null;
+
+  function editEntry(entry){
+    editingKey = entry.key;
+    renderHistoryList();
+  }
+
+  function cancelEdit(){
+    editingKey = null;
+    renderHistoryList();
+  }
+
+  function saveEdit(entry, formEls){
+    if (entry.type === 'rake') {
+      var newBets = formEls.betInputs.map(function(inp){ return Number(inp.value) || 0; });
+      var newJackpot = formEls.jackpotInput ? (Number(formEls.jackpotInput.value) || 0) : (entry.jackpot || 0);
+      var total = newBets.reduce(function(a, b){ return a + b; }, 0);
+      entry.totalBet = total;
+      entry.jackpot = newJackpot;
+      var sharedFee = (totalPotFromLosers(newBets) + newJackpot) * (SETTINGS.rake.feeRate / 100);
+      entry.players = entry.players.map(function(p, i){
+        var r = computeRakePure(newBets, i, sharedFee, newJackpot);
+        return { label: p.label, bet: r.bet, potRatio: r.potRatio, winMoney: r.winMoney, reward: r.reward };
+      });
+    } else if (entry.type === 'sidepot') {
+      var newBets2 = formEls.betInputs.map(function(inp){ return Number(inp.value) || 0; });
+      var newRanks = formEls.rankInputs ? formEls.rankInputs.map(function(inp){ return Number(inp.value) || 1; }) : entry.players.map(function(p){ return p.rank; });
+      var spData = newBets2.map(function(b, i){
+        var prevP = entry.players[i] || {};
+        return { bet: b, rank: newRanks[i], discount: prevP.discount || 'none', items: Number(prevP.items) || 0 };
+      });
+      var spResult = computeSidepots(spData, entry.spGameType || 'default');
+      entry.totalBet = newBets2.reduce(function(a, b){ return a + b; }, 0);
+      entry.totalFee = spResult.totalFee;
+      entry.players = spResult.results.map(function(r, i){
+        return { label: r.label, bet: r.bet, rank: r.rank, totalWon: r.totalWon, net: r.net, dealerFee: r.dealerFee, netAfterFee: r.netAfterFee, wonPots: r.wonPots, discount: spData[i].discount, items: spData[i].items };
+      });
+      entry.pots = spResult.pots.map(function(pot){
+        return { level: pot.level, margin: pot.margin, eligible: pot.eligible, potAmount: pot.potAmount, winnerLabel: pot.winnerLabel };
+      });
+    } else if (entry.type === 'point') {
+      var newAmount = Number(formEls.amountInput.value) || 0;
+      entry.amount = newAmount;
+      var p = computePoints({
+        amount: newAmount,
+        outcome: entry.outcome,
+        hidden: entry.hidden,
+        day: entry.day,
+        occJoin: entry.occJoin,
+        item: entry.item,
+        clubGrade: entry.clubGrade
+      });
+      entry.rankPoint = p.rankPoint;
+      entry.clubPoint = p.clubPoint;
+      entry.occPoint = p.occPoint;
+      entry.clubFund = p.clubFund;
+    } else if (entry.type === 'amatch') {
+      var newWin = Number(formEls.amountInput.value) || 0;
+      var rate = entry.rate || 0.01;
+      entry.amount = newWin;
+      entry.reward = Math.floor(newWin * rate);
+      entry.bonus = Math.floor(newWin * (SETTINGS.amatch.bonusRate / 100));
+    } else {
+      var newAmt = Number(formEls.amountInput.value) || 0;
+      entry.amount = newAmt;
+      var c = compute({
+        amount: newAmt,
+        gameType: entry.gameType,
+        discount: entry.discount,
+        items: entry.items
+      });
+      entry.effRate = c.effRate;
+      entry.fee = c.fee;
+      entry.net = c.net;
+      entry.jackpot = c.jackpot;
+    }
+    entry.note = formEls.noteInput.value.trim();
+    persistSet(entry.key, JSON.stringify(entry));
+    editingKey = null;
+    renderHistoryList();
+  }
+
+  function buildEditForm(entry){
+    var wrap = document.createElement('div');
+    wrap.className = 'hist-edit-form';
+
+    var formEls = { noteInput: null, amountInput: null, betInputs: [], rankInputs: [], jackpotInput: null };
+
+    if (entry.type === 'sidepot') {
+      var label3 = document.createElement('div');
+      label3.className = 'edit-form-label';
+      label3.textContent = '플레이어별 베팅 금액 · 순위';
+      wrap.appendChild(label3);
+      var betGrid3 = document.createElement('div');
+      betGrid3.className = 'edit-bet-grid';
+      entry.players.forEach(function(p){
+        var row3 = document.createElement('div');
+        row3.className = 'edit-bet-row';
+        var lbl3 = document.createElement('span');
+        lbl3.textContent = p.label;
+        var inp3 = document.createElement('input');
+        inp3.type = 'number';
+        inp3.min = '0';
+        inp3.value = p.bet;
+        inp3.style.flex = '1';
+        var rkInp = document.createElement('input');
+        rkInp.type = 'number';
+        rkInp.min = '1';
+        rkInp.max = String(entry.players.length);
+        rkInp.value = p.rank;
+        rkInp.style.width = '48px';
+        rkInp.style.flex = 'none';
+        rkInp.style.textAlign = 'center';
+        var rkLabel3 = document.createElement('span');
+        rkLabel3.textContent = '등';
+        rkLabel3.style.width = 'auto';
+        rkLabel3.style.fontSize = '11px';
+        row3.appendChild(lbl3);
+        row3.appendChild(inp3);
+        row3.appendChild(rkInp);
+        row3.appendChild(rkLabel3);
+        betGrid3.appendChild(row3);
+        formEls.betInputs.push(inp3);
+        formEls.rankInputs.push(rkInp);
+      });
+      wrap.appendChild(betGrid3);
+    } else if (entry.type === 'rake') {
+      var label = document.createElement('div');
+      label.className = 'edit-form-label';
+      label.textContent = '플레이어별 베팅 금액';
+      wrap.appendChild(label);
+      var betGrid = document.createElement('div');
+      betGrid.className = 'edit-bet-grid';
+      entry.players.forEach(function(p){
+        var row = document.createElement('div');
+        row.className = 'edit-bet-row';
+        var lbl = document.createElement('span');
+        lbl.textContent = p.label;
+        var inp = document.createElement('input');
+        inp.type = 'number';
+        inp.min = '0';
+        inp.value = p.bet;
+        row.appendChild(lbl);
+        row.appendChild(inp);
+        betGrid.appendChild(row);
+        formEls.betInputs.push(inp);
+      });
+      wrap.appendChild(betGrid);
+
+      var jLabel = document.createElement('div');
+      jLabel.className = 'edit-form-label';
+      jLabel.textContent = '잭팟 머니';
+      wrap.appendChild(jLabel);
+      var jInput = document.createElement('input');
+      jInput.type = 'number';
+      jInput.min = '0';
+      jInput.className = 'edit-amount-input';
+      jInput.value = entry.jackpot || 0;
+      wrap.appendChild(jInput);
+      formEls.jackpotInput = jInput;
+    } else {
+      var label2 = document.createElement('div');
+      label2.className = 'edit-form-label';
+      label2.textContent = entry.type === 'point' ? (entry.outcome === 'win' ? '획득 칩' : '손실 칩') : '승리 머니';
+      wrap.appendChild(label2);
+      var amountInput = document.createElement('input');
+      amountInput.type = 'number';
+      amountInput.min = '0';
+      amountInput.value = entry.amount;
+      amountInput.className = 'edit-amount-input';
+      wrap.appendChild(amountInput);
+      formEls.amountInput = amountInput;
+    }
+
+    var noteLabel = document.createElement('div');
+    noteLabel.className = 'edit-form-label';
+    noteLabel.textContent = '메모';
+    wrap.appendChild(noteLabel);
+    var noteInput = document.createElement('input');
+    noteInput.type = 'text';
+    noteInput.className = 'note-input edit-note-input';
+    noteInput.value = entry.note || '';
+    wrap.appendChild(noteInput);
+    formEls.noteInput = noteInput;
+
+    var btnRow = document.createElement('div');
+    btnRow.className = 'edit-btn-row';
+    var saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'edit-save-btn';
+    saveBtn.textContent = '저장';
+    saveBtn.addEventListener('click', function(){ saveEdit(entry, formEls); });
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'edit-cancel-btn';
+    cancelBtn.textContent = '취소';
+    cancelBtn.addEventListener('click', cancelEdit);
+    btnRow.appendChild(cancelBtn);
+    btnRow.appendChild(saveBtn);
+    wrap.appendChild(btnRow);
+
+    return wrap;
+  }
+
+  function clearAllEntries(filter){
+    var toDelete, toKeep;
+    if (!filter || filter === 'all') {
+      toDelete = historyEntries;
+      toKeep = [];
+    } else {
+      toDelete = historyEntries.filter(function(e){ return e.type === filter; });
+      toKeep = historyEntries.filter(function(e){ return e.type !== filter; });
+    }
+    var keys = toDelete.map(function(e){ return e.key; });
+    historyEntries = toKeep;
+    renderHistoryList();
+    keys.forEach(function(k){ persistDelete(k); });
+  }
+
+  var historyFilter = 'all';
+
+  function renderHistoryList(){
+    updatePointSummary();
+    updateRakeSummary();
+    document.getElementById('histBadge').textContent = historyEntries.length;
+    var filtered = historyEntries.filter(function(e){
+      return historyFilter === 'all' || e.type === historyFilter;
+    });
+    if (!filtered.length) {
+      historyList.innerHTML = '<p class="hist-empty">' + (historyEntries.length ? '해당 유형의 기록이 없어요.' : '아직 기록이 없어요. 계산 후 Enter를 누르거나 [기록에 추가] 버튼을 눌러보세요.') + '</p>';
+      return;
+    }
+    historyList.innerHTML = '';
+    filtered.forEach(function(entry){
+      var row = document.createElement('div');
+      row.className = 'hist-row';
+
+      if (editingKey === entry.key) {
+        row.appendChild(buildEditForm(entry));
+        historyList.appendChild(row);
+        return;
+      }
+
+      var main = document.createElement('div');
+      main.className = 'hist-main';
+
+      var header = document.createElement('div');
+      header.className = 'hist-header';
+
+      var amountLine = document.createElement('span');
+      amountLine.className = 'hist-amount';
+
+      var dateSpan = document.createElement('span');
+      dateSpan.className = 'hist-date';
+      dateSpan.textContent = new Date(entry.ts).toLocaleString('ko-KR');
+
+      header.appendChild(amountLine);
+      header.appendChild(dateSpan);
+
+      var resultLine = document.createElement('div');
+      resultLine.className = 'hist-result';
+
+      if (entry.type === 'point') {
+        amountLine.textContent = (entry.outcome === 'win' ? '승리 머니 ' : '손실 ') + fmt(entry.amount) + ' 칩';
+        var showOcc = entry.occJoin && entry.dayLabel !== '월~목';
+        var parts = [
+          '랭킹 ' + fmtPoint(entry.rankPoint),
+          '클럽 ' + fmtPoint(entry.clubPoint)
+        ];
+        if (showOcc) parts.push('점령 ' + fmtPoint(entry.occPoint));
+        parts.push('자금 ' + fmtPoint(entry.clubFund));
+        parts.forEach(function(p){
+          var span = document.createElement('span');
+          span.textContent = p;
+          resultLine.appendChild(span);
+        });
+      } else if (entry.type === 'rake') {
+        if (entry.players && entry.players.length) {
+          amountLine.textContent = '전체 베팅 ' + fmt(entry.totalBet) + ' 칩 · ' + entry.players.length + '명';
+          resultLine.classList.add('stacked');
+          entry.players.forEach(function(p){
+            var line = document.createElement('div');
+            line.className = 'rake-line';
+            var lbl = document.createElement('span');
+            lbl.className = 'rl-label';
+            lbl.textContent = p.label;
+            var bet = document.createElement('span');
+            bet.className = 'rl-bet';
+            bet.textContent = fmt(p.bet) + '칩';
+            var ratio = document.createElement('span');
+            ratio.className = 'rl-ratio';
+            ratio.textContent = p.potRatio.toFixed(2) + '%';
+            var pt = document.createElement('span');
+            pt.className = 'rl-point';
+            pt.textContent = fmt(p.reward) + 'p';
+            line.appendChild(lbl);
+            line.appendChild(bet);
+            line.appendChild(ratio);
+            line.appendChild(pt);
+            resultLine.appendChild(line);
+          });
+        } else {
+          amountLine.textContent = '전체 베팅 ' + fmt(entry.totalBet || 0) + ' 칩';
+          var span = document.createElement('span');
+          span.textContent = '레이크 포인트 ' + fmt(entry.reward || 0);
+          resultLine.appendChild(span);
+        }
+      } else if (entry.type === 'sidepot') {
+        amountLine.textContent = '전체 베팅 ' + fmt(entry.totalBet) + ' 칩 · ' + (entry.players ? entry.players.length : 0) + '명';
+        if (entry.players && entry.players.length) {
+          resultLine.classList.add('stacked');
+          entry.players.forEach(function(p){
+            var line = document.createElement('div');
+            line.className = 'rake-line';
+            var lbl = document.createElement('span');
+            lbl.className = 'rl-label';
+            lbl.textContent = p.label;
+            var bet = document.createElement('span');
+            bet.className = 'rl-bet';
+            bet.textContent = fmt(p.bet) + '칩';
+            var ratio = document.createElement('span');
+            ratio.className = 'rl-ratio';
+            ratio.textContent = p.rank + '등';
+            var netVal = p.net;
+            var pt = document.createElement('span');
+            pt.className = 'rl-point';
+            pt.style.color = netVal > 0 ? '#1a8f4a' : (netVal < 0 ? 'var(--red)' : 'var(--ink-faint)');
+            pt.textContent = (netVal > 0 ? '+' : '') + fmt(netVal);
+            line.appendChild(lbl);
+            line.appendChild(bet);
+            line.appendChild(ratio);
+            line.appendChild(pt);
+            resultLine.appendChild(line);
+          });
+        }
+      } else if (entry.type === 'amatch') {
+        amountLine.textContent = '승리 머니 ' + fmt(entry.amount) + ' 칩';
+        var aSpan = document.createElement('span');
+        aSpan.style.whiteSpace = 'nowrap';
+        aSpan.textContent = '바운티 ' + fmt(entry.reward) + ' · 보너스 머니 ' + fmt(entry.bonus || 0);
+        resultLine.appendChild(aSpan);
+      } else {
+        amountLine.textContent = '승리 머니 ' + fmt(entry.amount) + ' 칩';
+        var span = document.createElement('span');
+        span.textContent = '딜러비 ' + fmt(entry.fee) + ' 칩';
+        resultLine.appendChild(span);
+      }
+
+      var sub = document.createElement('div');
+      sub.className = 'hist-sub';
+      var pieces;
+      if (entry.type === 'point') {
+        pieces = [entry.outcome === 'win' ? '승리' : '패배', entry.dayLabel, entry.hidden ? '히든매치' : '일반', (entry.dayLabel !== '월~목' ? (entry.occJoin ? '점령전 참가' : '점령전 미참가') : null), entry.itemLabel, entry.clubGradeLabel].filter(Boolean);
+      } else if (entry.type === 'rake') {
+        pieces = [];
+      } else if (entry.type === 'sidepot') {
+        var spGameLabel = entry.spGameType === 'other' ? '러시홀덤' : (entry.spGameType === 'coin' ? '코인 경기장' : '일반 경기장');
+        pieces = ['사이드팟', spGameLabel];
+      } else if (entry.type === 'amatch') {
+        pieces = ['비율 ' + ((entry.rate || 0.01) * 100).toFixed(1) + '%'];
+      } else {
+        var gameLabel = entry.gameType === 'other' ? '러시홀덤' : (entry.gameType === 'coin' ? '코인 경기장' : '일반 경기장');
+        pieces = [gameLabel, entry.effRate.toFixed(2) + '%', entry.discountLabel, '잭팟 ' + fmt(entry.jackpot) + '칩'];
+      }
+      if (entry.note) pieces.push(entry.note);
+      pieces.forEach(function(p){
+        var tag = document.createElement('span');
+        tag.className = 'hist-tag';
+        tag.textContent = p;
+        sub.appendChild(tag);
+      });
+
+      main.appendChild(header);
+      main.appendChild(resultLine);
+      main.appendChild(sub);
+
+      var editBtn = document.createElement('button');
+      editBtn.className = 'hist-edit';
+      editBtn.type = 'button';
+      editBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.3 1.7l3 3L5.5 13.5 2 14l0.5-3.5L11.3 1.7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+      editBtn.setAttribute('aria-label', '기록 수정');
+      editBtn.addEventListener('click', function(){ editEntry(entry); });
+
+      var delBtn = document.createElement('button');
+      delBtn.className = 'hist-del';
+      delBtn.type = 'button';
+      delBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 1.5L11.5 11.5M11.5 1.5L1.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+      delBtn.setAttribute('aria-label', '기록 삭제');
+      delBtn.addEventListener('click', function(){ deleteEntry(entry.key); });
+
+      var rowActions = document.createElement('div');
+      rowActions.className = 'hist-row-actions';
+      rowActions.appendChild(editBtn);
+      rowActions.appendChild(delBtn);
+
+      row.appendChild(main);
+      row.appendChild(rowActions);
+      historyList.appendChild(row);
+    });
+  }
+
+  var baseRankInput = document.getElementById('baseRank');
+  var baseClubInput = document.getElementById('baseClub');
+  var baseOccInput = document.getElementById('baseOcc');
+  var baseFundInput = document.getElementById('baseFund');
+
+  function updatePointSummary(){
+    var sumRank = 0, sumClub = 0, sumOcc = 0, sumFund = 0;
+    historyEntries.forEach(function(e){
+      if (e.type === 'point') {
+        sumRank += Number(e.rankPoint) || 0;
+        sumClub += Number(e.clubPoint) || 0;
+        sumOcc += Number(e.occPoint) || 0;
+        sumFund += Number(e.clubFund) || 0;
+      }
+    });
+    var baseRank = Number(baseRankInput.value) || 0;
+    var baseClub = Number(baseClubInput.value) || 0;
+    var baseOcc = Number(baseOccInput.value) || 0;
+    var baseFund = Number(baseFundInput.value) || 0;
+    document.getElementById('psumRank').textContent = fmtPoint(baseRank + sumRank);
+    document.getElementById('psumClub').textContent = fmtPoint(baseClub + sumClub);
+    document.getElementById('psumOcc').textContent = fmtPoint(baseOcc + sumOcc);
+    document.getElementById('psumFund').textContent = fmtPoint(baseFund + sumFund);
+  }
+
+  [baseRankInput, baseClubInput, baseOccInput, baseFundInput].forEach(function(inp){
+    inp.addEventListener('input', updatePointSummary);
+  });
+
+  document.getElementById('resetPointSummaryBtn').addEventListener('click', function(){
+    [baseRankInput, baseClubInput, baseOccInput, baseFundInput].forEach(function(inp){
+      inp.value = 0;
+    });
+    updatePointSummary();
+  });
+
+  var rakeBaseValues = [0];
+  var rakeSummaryGrid = document.getElementById('rakeSummaryGrid');
+
+  function buildRakeSummaryGrid(){
+    rakeSummaryGrid.innerHTML = '';
+    rakePlayers.forEach(function(bet, idx){
+      var tile = document.createElement('div');
+      tile.className = 'psum-tile';
+
+      var label = document.createElement('div');
+      label.className = 'psum-label';
+      label.textContent = '레이크 포인트 (P' + (idx + 1) + ')';
+
+      var value = document.createElement('div');
+      value.className = 'psum-value';
+      value.id = 'psumRake' + idx;
+      value.textContent = '0';
+
+      var baseRow = document.createElement('div');
+      baseRow.className = 'psum-base-row';
+      var baseLabel = document.createElement('span');
+      baseLabel.textContent = '기존';
+      var baseInput = document.createElement('input');
+      baseInput.type = 'number';
+      baseInput.value = rakeBaseValues[idx] || 0;
+      baseInput.addEventListener('input', function(e){
+        rakeBaseValues[idx] = e.target.value === '' ? 0 : Number(e.target.value);
+        updateRakeSummary();
+      });
+      baseRow.appendChild(baseLabel);
+      baseRow.appendChild(baseInput);
+
+      tile.appendChild(label);
+      tile.appendChild(value);
+      tile.appendChild(baseRow);
+      rakeSummaryGrid.appendChild(tile);
+    });
+    updateRakeSummary();
+  }
+
+  document.getElementById('resetRakeSummaryBtn').addEventListener('click', function(){
+    rakeBaseValues = rakeBaseValues.map(function(){ return 0; });
+    buildRakeSummaryGrid();
+  });
+
+  function updateRakeSummary(){
+    rakePlayers.forEach(function(bet, idx){
+      var sum = 0;
+      historyEntries.forEach(function(e){
+        if (e.type === 'rake' && e.players && e.players[idx]) sum += Number(e.players[idx].reward) || 0;
+      });
+      var base = Number(rakeBaseValues[idx]) || 0;
+      var el = document.getElementById('psumRake' + idx);
+      if (el) el.textContent = fmt(base + sum);
+    });
+  }
+
+  var historyModal = document.getElementById('historyModal');
+  var openHistoryBtn = document.getElementById('openHistoryBtn');
+  var closeHistoryModal = document.getElementById('closeHistoryModal');
+  openHistoryBtn.addEventListener('click', function(){
+    historyModal.classList.add('open');
+  });
+  closeHistoryModal.addEventListener('click', function(){
+    historyModal.classList.remove('open');
+  });
+  historyModal.addEventListener('click', function(e){
+    if (e.target === historyModal) historyModal.classList.remove('open');
+  });
+
+  function bindFormulaModal(btnId, modalId){
+    var btn = document.getElementById(btnId);
+    var modal = document.getElementById(modalId);
+    btn.addEventListener('click', function(){
+      modal.classList.add('open');
+    });
+    modal.querySelector('.close-formula').addEventListener('click', function(){
+      modal.classList.remove('open');
+    });
+    modal.addEventListener('click', function(e){
+      if (e.target === modal) modal.classList.remove('open');
+    });
+  }
+  bindFormulaModal('openDealerFormula', 'formulaModalDealer');
+  bindFormulaModal('openPointFormula', 'formulaModalPoint');
+  bindFormulaModal('openRakeFormula', 'formulaModalRake');
+  bindFormulaModal('openAmatchFormula', 'formulaModalAmatch');
+  bindFormulaModal('openSidepotFormula', 'formulaModalSidepot');
+
+  var settingsModal = document.getElementById('settingsModal');
+  var openSettingsBtns = document.querySelectorAll('.open-settings-btn');
+  var closeSettingsModal = document.getElementById('closeSettingsModal');
+
+  function populateSettingsForm(){
+    var d = SETTINGS.dealer, p = SETTINGS.point, r = SETTINGS.rake, a = SETTINGS.amatch;
+    document.getElementById('setDealerTier').value = d.tier;
+    document.getElementById('setDealerRateUnder').value = d.rateUnder;
+    document.getElementById('setDealerRateOver').value = d.rateOver;
+    document.getElementById('setDealerOtherAdd').value = d.otherAdd;
+    document.getElementById('setDealerCoinRate').value = d.coinRate;
+    document.getElementById('setDealerGold').value = d.gold;
+    document.getElementById('setDealerRoyal').value = d.royal;
+    document.getElementById('setDealerLuckyPer').value = d.luckyPer;
+    document.getElementById('setDealerLuckyMax').value = d.luckyMax;
+    document.getElementById('setDealerJackpot').value = d.jackpot;
+
+    document.getElementById('setPtRankWin').value = p.rankWin;
+    document.getElementById('setPtRankLose').value = p.rankLose;
+    document.getElementById('setPtHiddenMult').value = p.hiddenMult;
+    document.getElementById('setPtDayFri').value = p.dayFri;
+    document.getElementById('setPtDaySat').value = p.daySat;
+    document.getElementById('setPtDaySun').value = p.daySun;
+    document.getElementById('setPtWinFactor').value = p.winFactor.toFixed(6);
+    document.getElementById('setPtLoseFactor').value = p.loseFactor.toFixed(7);
+    document.getElementById('setPtItem10').value = p.item10;
+    document.getElementById('setPtItem30').value = p.item30;
+    document.getElementById('setPtItem50').value = p.item50;
+    document.getElementById('setPtItem150').value = p.item150;
+
+    document.getElementById('setGradeSilverWin').value = p.grades.silver.win;
+    document.getElementById('setGradeSilverLose').value = p.grades.silver.lose;
+    document.getElementById('setGradeGoldWin').value = p.grades.gold.win;
+    document.getElementById('setGradeGoldLose').value = p.grades.gold.lose;
+    document.getElementById('setGradeDiamondWin').value = p.grades.diamond.win;
+    document.getElementById('setGradeDiamondLose').value = p.grades.diamond.lose;
+    document.getElementById('setGradeProWin').value = p.grades.pro.win;
+    document.getElementById('setGradeProLose').value = p.grades.pro.lose;
+    document.getElementById('setGradeMasterWin').value = p.grades.master.win;
+    document.getElementById('setGradeMasterLose').value = p.grades.master.lose;
+
+    document.getElementById('setRakeFeeRate').value = r.feeRate;
+
+    document.getElementById('setAmatchRate1').value = a.rate;
+    document.getElementById('setAmatchBonus').value = a.bonusRate;
+  }
+
+  function readSettingsForm(){
+    var num = function(id){ return Number(document.getElementById(id).value) || 0; };
+    SETTINGS.dealer = {
+      tier: num('setDealerTier'), rateUnder: num('setDealerRateUnder'), rateOver: num('setDealerRateOver'),
+      otherAdd: num('setDealerOtherAdd'), coinRate: num('setDealerCoinRate'), gold: num('setDealerGold'),
+      royal: num('setDealerRoyal'), luckyPer: num('setDealerLuckyPer'), luckyMax: num('setDealerLuckyMax'),
+      jackpot: num('setDealerJackpot')
+    };
+    SETTINGS.point = {
+      rankWin: num('setPtRankWin'), rankLose: num('setPtRankLose'), hiddenMult: num('setPtHiddenMult'),
+      dayFri: num('setPtDayFri'), daySat: num('setPtDaySat'), daySun: num('setPtDaySun'),
+      winFactor: num('setPtWinFactor'), loseFactor: num('setPtLoseFactor'),
+      item10: num('setPtItem10'), item30: num('setPtItem30'), item50: num('setPtItem50'), item150: num('setPtItem150'),
+      grades: {
+        silver: { win: num('setGradeSilverWin'), lose: num('setGradeSilverLose') },
+        gold: { win: num('setGradeGoldWin'), lose: num('setGradeGoldLose') },
+        diamond: { win: num('setGradeDiamondWin'), lose: num('setGradeDiamondLose') },
+        pro: { win: num('setGradeProWin'), lose: num('setGradeProLose') },
+        master: { win: num('setGradeMasterWin'), lose: num('setGradeMasterLose') }
+      }
+    };
+    SETTINGS.rake = { feeRate: num('setRakeFeeRate') };
+    SETTINGS.amatch = { rate: num('setAmatchRate1'), bonusRate: num('setAmatchBonus') };
+    TIER_THRESHOLD = SETTINGS.dealer.tier;
+  }
+
+  function refreshDynamicLabels(){
+    var d = SETTINGS.dealer, p = SETTINGS.point;
+    gameHint.textContent = gameHintText(current.gameType);
+    document.getElementById('luckyItemHint').textContent = '럭키 딜러 개수 (딜러비에서 개당 ' + d.luckyPer + '% 차감)';
+    document.getElementById('multHidden').textContent = '(' + p.hiddenMult + '배)';
+    document.getElementById('multFri').textContent = '(' + p.dayFri + '배)';
+    document.getElementById('multSat').textContent = '(' + p.daySat + '배)';
+    document.getElementById('multSun').textContent = '(' + p.daySun + '배)';
+    document.getElementById('btnItem10').textContent = '+' + p.item10 + '%';
+    document.getElementById('btnItem30').textContent = '+' + p.item30 + '%';
+    document.getElementById('btnItem50').textContent = '+' + p.item50 + '점';
+    document.getElementById('btnItem150').textContent = '+' + p.item150 + '점';
+  }
+
+  function refreshAllAfterSettings(){
+    buildLuckyItemPills();
+    refreshAmatchRate();
+    refreshDynamicLabels();
+    render();
+    renderPoints();
+    updateRakeValues();
+    renderAmatch();
+  }
+
+  openSettingsBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      populateSettingsForm();
+      settingsModal.classList.add('open');
+    });
+  });
+  closeSettingsModal.addEventListener('click', function(){
+    settingsModal.classList.remove('open');
+  });
+  settingsModal.addEventListener('click', function(e){
+    if (e.target === settingsModal) settingsModal.classList.remove('open');
+  });
+  document.getElementById('saveSettingsBtn').addEventListener('click', function(){
+    readSettingsForm();
+    persistSet('app-settings', JSON.stringify(SETTINGS));
+    refreshAllAfterSettings();
+    settingsModal.classList.remove('open');
+  });
+  document.getElementById('resetSettingsBtn').addEventListener('click', function(){
+    SETTINGS = JSON.parse(JSON.stringify(SETTINGS_DEFAULTS));
+    TIER_THRESHOLD = SETTINGS.dealer.tier;
+    populateSettingsForm();
+    persistSet('app-settings', JSON.stringify(SETTINGS));
+    refreshAllAfterSettings();
+  });
+
+  async function loadSettings(){
+    try {
+      var res = null;
+      if (hasStorage()) {
+        res = await window.storage.get('app-settings', false);
+      } else if (hasLocalStorage()) {
+        var v = localStorage.getItem('app-settings');
+        if (v) res = { value: v };
+      }
+      if (res && res.value) {
+        var loaded = JSON.parse(res.value);
+        SETTINGS = Object.assign({}, SETTINGS_DEFAULTS, loaded);
+        if (loaded.dealer) SETTINGS.dealer = Object.assign({}, SETTINGS_DEFAULTS.dealer, loaded.dealer);
+        if (loaded.point) {
+          SETTINGS.point = Object.assign({}, SETTINGS_DEFAULTS.point, loaded.point);
+          SETTINGS.point.grades = Object.assign({}, SETTINGS_DEFAULTS.point.grades, loaded.point.grades || {});
+        }
+        if (loaded.rake) SETTINGS.rake = Object.assign({}, SETTINGS_DEFAULTS.rake, loaded.rake);
+        if (loaded.amatch) SETTINGS.amatch = Object.assign({}, SETTINGS_DEFAULTS.amatch, loaded.amatch);
+        TIER_THRESHOLD = SETTINGS.dealer.tier;
+      }
+    } catch (e) {}
+    refreshAllAfterSettings();
+  }
+
+  var historyFilterBtns = document.getElementById('historyFilterBtns');
+  var filterLabels = {
+    all: '전체 삭제',
+    dealer: '딜러비 기록 삭제',
+    point: '포인트 기록 삭제',
+    rake: '레이크 기록 삭제',
+    amatch: '바운티 매치 기록 삭제',
+    sidepot: '사이드팟 기록 삭제'
+  };
+  function updateClearBtnLabel(){
+    clearHistBtn.textContent = filterLabels[historyFilter] || '전체 삭제';
+  }
+
+  historyFilterBtns.querySelectorAll('.pill-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      historyFilter = btn.dataset.val;
+      historyFilterBtns.querySelectorAll('.pill-btn').forEach(function(b){
+        b.classList.toggle('active', b === btn);
+      });
+      clearPending = false;
+      clearTimeout(clearTimer);
+      updateClearBtnLabel();
+      renderHistoryList();
+    });
+  });
+
+  addLogBtn.addEventListener('click', function(){
+    addEntry();
+  });
+  addPointLogBtn.addEventListener('click', function(){
+    addPointEntry();
+  });
+  addRakeLogBtn.addEventListener('click', function(){
+    addRakeEntry();
+  });
+  addAmatchLogBtn.addEventListener('click', function(){
+    addAmatchEntry();
+  });
+
+  var clearPending = false;
+  var clearTimer = null;
+  clearHistBtn.addEventListener('click', function(){
+    var visibleCount = historyEntries.filter(function(e){
+      return historyFilter === 'all' || e.type === historyFilter;
+    }).length;
+    if (!visibleCount) return;
+    if (!clearPending) {
+      clearPending = true;
+      clearHistBtn.textContent = '한 번 더 누르면 삭제돼요';
+      clearTimer = setTimeout(function(){
+        clearPending = false;
+        updateClearBtnLabel();
+      }, 3000);
+      return;
+    }
+    clearTimeout(clearTimer);
+    clearPending = false;
+    clearAllEntries(historyFilter);
+    updateClearBtnLabel();
+  });
+  updateClearBtnLabel();
+
+  async function initHistory(){
+    var loaded = await persistLoadAll('dealer-log:');
+    loaded.sort(function(a, b){ return b.ts - a.ts; });
+    historyEntries = loaded;
+    renderHistoryList();
+  }
+
+  render();
+  renderPoints();
+  renderRakePlayers();
+  buildRakeSummaryGrid();
+  buildSpRows();
+  initHistory();
+  loadSettings();
+})();
+</script>
+</body>
+</html>
